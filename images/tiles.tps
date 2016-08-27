@@ -6,7 +6,7 @@
         <key>texturePackerVersion</key>
         <string>4.2.3</string>
         <key>fileName</key>
-        <string>C:/Users/wheerd/Desktop/ld-36/images/sprites.tps</string>
+        <string>C:/Users/wheerd/Desktop/ld-36/images/tiles.tps</string>
         <key>autoSDSettings</key>
         <array>
             <struct type="AutoSDSettings">
@@ -36,7 +36,7 @@
         <key>dataFormat</key>
         <string>spritesheet-only</string>
         <key>textureFileName</key>
-        <filename>sprites.png</filename>
+        <filename>tiles.png</filename>
         <key>flipPVR</key>
         <false/>
         <key>pvrCompressionQuality</key>
@@ -182,28 +182,14 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
-            <key type="filename">aqueduct-BL.png</key>
-            <key type="filename">aqueduct-BLR.png</key>
-            <key type="filename">aqueduct-BR.png</key>
-            <key type="filename">aqueduct-LR.png</key>
-            <key type="filename">aqueduct-TB.png</key>
-            <key type="filename">aqueduct-TBL.png</key>
-            <key type="filename">aqueduct-TBLR.png</key>
-            <key type="filename">aqueduct-TBR.png</key>
-            <key type="filename">aqueduct-TL.png</key>
-            <key type="filename">aqueduct-TLR.png</key>
-            <key type="filename">aqueduct-TR.png</key>
-            <key type="filename">aqueduct-water-BL.png</key>
-            <key type="filename">aqueduct-water-BLR.png</key>
-            <key type="filename">aqueduct-water-BR.png</key>
-            <key type="filename">aqueduct-water-LR.png</key>
-            <key type="filename">aqueduct-water-TB.png</key>
-            <key type="filename">aqueduct-water-TBL.png</key>
-            <key type="filename">aqueduct-water-TBLR.png</key>
-            <key type="filename">aqueduct-water-TBR.png</key>
-            <key type="filename">aqueduct-water-TL.png</key>
-            <key type="filename">aqueduct-water-TLR.png</key>
-            <key type="filename">aqueduct-water-TR.png</key>
+            <key type="filename">grass.png</key>
+            <key type="filename">house1.png</key>
+            <key type="filename">house2.png</key>
+            <key type="filename">rock.png</key>
+            <key type="filename">sink.png</key>
+            <key type="filename">wall.png</key>
+            <key type="filename">well_empty.png</key>
+            <key type="filename">well_full.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -211,28 +197,14 @@
         </map>
         <key>fileList</key>
         <array>
-            <filename>aqueduct-BL.png</filename>
-            <filename>aqueduct-BLR.png</filename>
-            <filename>aqueduct-BR.png</filename>
-            <filename>aqueduct-LR.png</filename>
-            <filename>aqueduct-TB.png</filename>
-            <filename>aqueduct-TBL.png</filename>
-            <filename>aqueduct-TBLR.png</filename>
-            <filename>aqueduct-TBR.png</filename>
-            <filename>aqueduct-TL.png</filename>
-            <filename>aqueduct-TLR.png</filename>
-            <filename>aqueduct-TR.png</filename>
-            <filename>aqueduct-water-BL.png</filename>
-            <filename>aqueduct-water-BLR.png</filename>
-            <filename>aqueduct-water-BR.png</filename>
-            <filename>aqueduct-water-LR.png</filename>
-            <filename>aqueduct-water-TB.png</filename>
-            <filename>aqueduct-water-TBL.png</filename>
-            <filename>aqueduct-water-TBLR.png</filename>
-            <filename>aqueduct-water-TBR.png</filename>
-            <filename>aqueduct-water-TL.png</filename>
-            <filename>aqueduct-water-TLR.png</filename>
-            <filename>aqueduct-water-TR.png</filename>
+            <filename>grass.png</filename>
+            <filename>house1.png</filename>
+            <filename>house2.png</filename>
+            <filename>rock.png</filename>
+            <filename>sink.png</filename>
+            <filename>well_empty.png</filename>
+            <filename>well_full.png</filename>
+            <filename>wall.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>

@@ -1,53 +1,123 @@
-/// <reference path="bower_components/phaser/typescript/phaser.d.ts" />
+// <reference path="bower_components/phaser/typescript/phaser.d.ts" />
 // import * as Phaser from 'phaser'
 
 const TOP = 1;
 const BOTTOM = 2;
 const LEFT = 4;
 const RIGHT = 8;
-const IMAGE_FOLDER = 'images/'
+const IMAGE_FOLDER = 'images/';
 
-module GameFromScratch {
-    export class TitleScreenState extends Phaser.State {
+const SINK_GID = 20;
+
+module AqueductGame {
+    function sourceFilter(x: number, y: number) : (s: Phaser.Sprite) => boolean {
+        return function (s: Phaser.Sprite) : boolean {
+            var sx = s.x / 32;
+            var sy = (s.y + 20) / 28;
+            return sx == x && sy == y;
+        }
+    }
+
+    class WaterData {
+        constructor() {
+            this.level = 0;
+            this.isSink = false;
+            this.isSource = false;
+            this.blocked = -1;
+        }
+
+        level: number;
+        isSink: boolean;
+        isSource: boolean;
+        blocked: number;
+    }
+
+    export class GameState extends Phaser.State {
         game: Phaser.Game;
+        map: Phaser.Tilemap;
+        floorLayer: Phaser.TilemapLayer;
+        wallLayer: Phaser.TilemapLayer;
+        sinks: Phaser.Group;
+        sources: Phaser.Group;
+        water: WaterData[][];
+        waterLayer: Phaser.Graphics;
+        
         constructor() {
             super();
         }
-        titleScreenImage: Phaser.Sprite;
 
         preload() {
-            /*
-            ['aqueduct', 'aqueduct-water'].forEach(type => {
-                for (var i = 0; i < 16; i++) {
-                    var suffix = ''
-                    if (i & TOP) suffix += 'T'
-                    if (i & BOTTOM) suffix += 'B'
-                    if (i & LEFT) suffix += 'L'
-                    if (i & RIGHT) suffix += 'R'
-                    if (suffix.length < 2) continue
-                    var name = type + '-' + suffix + '.png'
-                    this.load.image(type + i, IMAGE_FOLDER + name);
-                }
-            })
-            */
             this.load.tilemap('test', 'maps/test.json', null, Phaser.Tilemap.TILED_JSON);
-            this.load.image('tiles', IMAGE_FOLDER + 'tiles.png');
+            this.load.spritesheet('tiles', IMAGE_FOLDER + 'tiles.png', 32, 48);
+            this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
         }
         create() {
             this.stage.backgroundColor = '#787878';
-            /*
-            for (var x = 100; x < 200; x += 32) {                
-                for (var y = 100; y < 200; y += 28) {
-                    var sprite = this.add.sprite(x, y, "aqueduct15");
-                    sprite.anchor.y = 1/4
-                    console.log(sprite.offsetY)
+
+            this.map = this.add.tilemap('test');
+            this.map.addTilesetImage('tiles', 'tiles');
+            this.map.addTilesetImage('walls', 'walls');
+
+            this.floorLayer = this.map.createLayer('floor');
+            this.wallLayer = this.map.createLayer('walls');
+            // this.sinkLayer = this.map.createLayer('sinks');
+
+            this.sinks = this.add.group()
+            this.sinks.y += 48/2
+            this.map.createFromObjects('sinks', SINK_GID, 'tiles', 4, true, false, this.sinks)
+
+            this.sources = this.add.group()
+            this.sources.y += 48/2
+            this.map.createFromObjects('sources', SINK_GID, 'tiles', 4, true, false, this.sources)
+
+            this.floorLayer.resizeWorld();
+
+            this.waterLayer = this.add.graphics(this.map.widthInPixels, this.map.heightInPixels);
+
+            this.input.addMoveCallback(() => this.getTileProperties(), this);
+
+            this.water = [];
+            for(var x = 0; x < this.map.width; x++) {
+                this.water[x] = [];
+                for(var y: number = 0; y < this.map.height; y++) {
+                    var wall = this.map.getTile(x, y, this.wallLayer);
+                    var data = new WaterData();
+                    data.isSink = this.isSink(x, y);
+                    data.isSource = this.isSource(x, y);
+                    if (wall) {
+                        data.blocked = TOP * wall.properties['top'] + 
+                                       BOTTOM * wall.properties['bottom'] + 
+                                       LEFT * wall.properties['left'] + 
+                                       RIGHT * wall.properties['right'];
+                    }
+                    this.water[x][y] = data;
                 }
             }
-            */
-            var map = this.add.tilemap('test');
-            map.addTilesetImage('tiles', 'tiles');
-            var layer = map.createLayer('floor');
-            layer.resizeWorld();
+
+            this.waterLayer.clear()
+
+            console.log(this.water);
+        }
+
+        isSource(x: number, y: number) : boolean {
+            return this.sources.filter(sourceFilter(x, y)).total > 0;
+        }
+
+        isSink(x: number, y: number) : boolean {
+            return this.sinks.filter(sourceFilter(x, y)).total > 0;
+        }
+
+        getTileProperties() {
+            var x = (this.wallLayer as any).getTileX(this.input.activePointer.worldX);
+            var y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY);
+
+            var tile = this.map.getTile(x, y, this.wallLayer);
+
+            if (tile) {
+                this.game.debug.text('Selected tile properties:'+ JSON.stringify( tile.properties ), 16, 570);
+            } else {
+                this.game.debug.text('No tile selected', 16, 570);
+            }
         }
     }
 
@@ -57,13 +127,13 @@ module GameFromScratch {
         constructor() {
             this.game = new Phaser.Game(800, 600, Phaser.WEBGL, 'content');
 
-            this.game.state.add("TitleScreenState", TitleScreenState, false);
-            this.game.state.start("TitleScreenState", true, true);
+            this.game.state.add("GameState", GameState, false);
+            this.game.state.start("GameState", true, true);
         }
 
     }
 }
 
 window.onload = () => {
-    var game = new GameFromScratch.SimpleGame();
+    var game = new AqueductGame.SimpleGame();
 };

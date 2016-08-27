@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="32" tileheight="28">
- <tileset firstgid="1" name="tiles" tilewidth="32" tileheight="48">
-  <image source="../images/tiles.png" width="32" height="1392"/>
- </tileset>
+ <tileset firstgid="1" source="walls.tsx"/>
+ <tileset firstgid="16" source="tiles.tsx"/>
  <layer name="floor" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJwTZ2BgEB/FgwYDABjRCP0=
+   eJwTZmBgEMaBBaAYFx9ZDJs6EBZF4+PC9FJHrPvQ1eFSQ4o6XOqR5QBJcwal
   </data>
  </layer>
  <layer name="walls" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJyTYmBgkAJiASBmZYAAKRyYAYc6Bix8ZHXoAKSGH4pFCKiTBGJZKB+XOnTADcQsSJgJiY0MJIBYBmoHuj4pBuIAehiQqg49jAErlQOJ
+   eJxjYCAPMBKpjnOQq+MgQo0glBYi0kxKAAA37ABR
   </data>
  </layer>
- <layer name="sinks" width="10" height="10">
-  <data encoding="base64" compression="zlib">
-   eJxjYBg4ID1EzaYlAAAyFAA3
-  </data>
- </layer>
+ <objectgroup name="sources">
+  <object name="s2" type="source" gid="20" x="128" y="56"/>
+ </objectgroup>
+ <objectgroup name="sinks">
+  <object name="s1" type="sink" gid="20" x="128" y="196"/>
+ </objectgroup>
 </map>
