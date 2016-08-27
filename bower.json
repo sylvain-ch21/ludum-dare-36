@@ -1,0 +1,19 @@
+{
+  "name": "Ludum Dare 36",
+  "homepage": "https://github.com/wheerd/ludum-dare-36",
+  "authors": [
+    "Wheerd <admin@wheerd.de>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
