@@ -4,7 +4,12 @@
  <tileset firstgid="16" source="tiles.tsx"/>
  <layer name="floor" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJwTZmBgEMaBBaAYFx9ZDJs6EBZF4+PCojhobOrQMSnmEes+dHW41JCiDpd6ZDkAarsGzQ==
+   eJwTZmBgEMaBBaAYFx9ZDJu6wYjR3SdKpDpcakhRh0s9shwANmMGkQ==
+  </data>
+ </layer>
+ <layer name="movable" width="10" height="10">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAtECVRHTqNTR06ptS8wQQA6TgBEg==
   </data>
  </layer>
  <layer name="walls" width="10" height="10">

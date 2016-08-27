@@ -14,22 +14,27 @@ const ZOOM = 2;
 const SINK_GID = 20;
 const WATER_COLOR = 0x1dcbe5;
 const WATER_BORDER_COLOR = 0xffffff;
-const WATER_MIN_ALPHA = 0.3;
-const WATER_MAX_ALPHA = 0.7;
 const WATER_PER_SOURCE = 12;
-const WATER_PER_SINK = 1;
-const WATER_SINK_THRESH = 50;
-const WATER_MAX = 100;
-const WATER_RATE = 0.5;
+const WATER_PER_SINK = 6;
+const WATER_SINK_THRESH = 10;
+const WATER_MAX = 48;
+const WATER_RATE = 0.8;
 
-const WATER_SPREAD_THRESH = 10;
-const WATER_DISP_THRESH = 4;
+const WATER_SPREAD_THRESH = 0;
+const WATER_DISP_THRESH = 3;
+
+const CURSOR_UP = 4
+const CURSOR_DOWN = 0
+const CURSOR_LEFT = 2
+const CURSOR_RIGHT = 3
+const CURSOR_ERROR = 1
+const CURSOR_WALL = 5
 
 module AqueductGame {
     function sourceFilter(x: number, y: number) : (s: Phaser.Sprite) => boolean {
         return function (s: Phaser.Sprite) : boolean {
-            var sx = s.x / 32;
-            var sy = (s.y + 20) / 28;
+            let sx = s.x / 32;
+            let sy = (s.y + 20) / 28;
             return sx == x && sy == y;
         }
     }
@@ -55,10 +60,14 @@ module AqueductGame {
         map: Phaser.Tilemap;
         floorLayer: Phaser.TilemapLayer;
         wallLayer: Phaser.TilemapLayer;
+        movableLayer: Phaser.TilemapLayer;
         sinks: Phaser.Group;
         sources: Phaser.Group;
         water: WaterData[][];
         waterLayer: Phaser.Graphics;
+        selectedTile: Phaser.Tile;
+        cursor: Phaser.Sprite;
+        marker: Phaser.Sprite;
         
         constructor() {
             super();
@@ -69,51 +78,52 @@ module AqueductGame {
             this.load.spritesheet('tiles', IMAGE_FOLDER + 'tiles.png', 32, 48);
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
+            this.load.spritesheet('cursors', IMAGE_FOLDER + 'cursors.png', 32, 48);
         }
 
         create() {
+            this.stage.smoothed = false;
             this.stage.backgroundColor = '#787878';
+            this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE
+            this.game.scale.setUserScale(ZOOM, ZOOM, 0, 0)
+            this.game.scale.refresh();
 
             this.map = this.add.tilemap('test');
             this.map.addTilesetImage('tiles', 'tiles');
             this.map.addTilesetImage('walls', 'walls');
 
             this.floorLayer = this.map.createLayer('floor');
+            this.movableLayer = this.map.createLayer('movable');
             this.wallLayer = this.map.createLayer('walls');
 
             this.sinks = this.add.group()
-            this.sinks.y += 40
-            this.sinks.scale.set(ZOOM)
+            this.sinks.y += 20
             this.map.createFromObjects('sinks', SINK_GID, 'tiles', 4, true, false, this.sinks)
 
             this.sources = this.add.group()
-            this.sources.y = 40
-            this.sources.scale.set(ZOOM)
+            this.sources.y = 20
             this.map.createFromObjects('sources', SINK_GID, 'tiles', 4, true, false, this.sources)
-
-            this.floorLayer.setScale(ZOOM)
-            this.wallLayer.setScale(ZOOM)
 
             this.wallLayer.resizeWorld();
 
             this.waterLayer = this.add.graphics(0, 0);
-            this.waterLayer.scale.set(ZOOM, ZOOM);
             this.waterLayer.alpha = 0.6;
 
             this.sources.forEach(function (source) {
-                var sx = source.x / 32;
-                var sy = (source.y + 20) / 28;
+                let sx = source.x / 32;
+                let sy = (source.y + 20) / 28;
                 this.createFountainEmitter(sx, sy, false);
             }, this)
 
             this.input.addMoveCallback(() => this.getTileProperties(), this);
+            this.input.onTap.add(this.onTap, this)
 
             this.water = [];
-            for(var x = 0; x < this.map.width; x++) {
+            for(let x = 0; x < this.map.width; x++) {
                 this.water[x] = [];
-                for(var y: number = 0; y < this.map.height; y++) {
-                    var wall = this.map.getTile(x, y, this.wallLayer);
-                    var data = new WaterData();
+                for(let y: number = 0; y < this.map.height; y++) {
+                    let wall = this.map.getTile(x, y, this.wallLayer);
+                    let data = new WaterData();
                     data.isSink = this.isSink(x, y);
                     data.isSource = this.isSource(x, y);
                     if (wall) {
@@ -125,6 +135,16 @@ module AqueductGame {
                     this.water[x][y] = data;
                 }
             }
+
+            this.marker = this.add.sprite(0, 0, 'cursors', CURSOR_WALL);
+            this.marker.visible = false
+
+            this.add.tween(this.marker).from({alpha: 0.7}).to({alpha: 0.9}, 1000, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
+
+            this.cursor = this.add.sprite(0, 0, 'cursors', CURSOR_WALL);
+            this.cursor.visible = false
+
+            this.add.tween(this.cursor).from({alpha: 0.7}).to({alpha: 0.9}, 1000, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
         }
 
         update() {
@@ -137,23 +157,23 @@ module AqueductGame {
             let wDelta = []
 
             
-            for(var x = 0; x < this.map.width; x++) {
+            for(let x = 0; x < this.map.width; x++) {
                 wDelta[x] = []
-                for(var y: number = 0; y < this.map.height; y++) {
+                for(let y: number = 0; y < this.map.height; y++) {
                     wDelta[x][y] = 0
                 }
             }
 
-            for(var x = 0; x < this.map.width; x++) {
-                for(var y: number = 0; y < this.map.height; y++) {
-                    var water = this.water[x][y];
+            for(let x = 0; x < this.map.width; x++) {
+                for(let y: number = 0; y < this.map.height; y++) {
+                    let water = this.water[x][y];
                     if (water.isSource) water.level += WATER_PER_SOURCE * delta;
                     if (water.isSink &&  water.level > WATER_SINK_THRESH) water.level -= WATER_PER_SINK * delta;
 
-                    var top    = ((water.blocked & TOP)    && y > 0 && (this.water[x][y-1].blocked & BOTTOM)) ? 1 : 0;
-                    var bottom = ((water.blocked & BOTTOM) && y < h && (this.water[x][y+1].blocked & TOP))    ? 1 : 0;
-                    var left   = ((water.blocked & LEFT)   && x > 0 && (this.water[x-1][y].blocked & RIGHT))  ? 1 : 0;
-                    var right  = ((water.blocked & RIGHT)  && x < w && (this.water[x+1][y].blocked & LEFT))   ? 1 : 0;
+                    let top    = ((water.blocked & TOP)    && y > 0 && (this.water[x][y-1].blocked & BOTTOM)) ? 1 : 0;
+                    let bottom = ((water.blocked & BOTTOM) && y < h && (this.water[x][y+1].blocked & TOP))    ? 1 : 0;
+                    let left   = ((water.blocked & LEFT)   && x > 0 && (this.water[x-1][y].blocked & RIGHT))  ? 1 : 0;
+                    let right  = ((water.blocked & RIGHT)  && x < w && (this.water[x+1][y].blocked & LEFT))   ? 1 : 0;
 
                     if (water.level >= WATER_SPREAD_THRESH && (top || bottom || left || right)) {
                         const total = top + bottom + left + right;
@@ -191,53 +211,50 @@ module AqueductGame {
                         }
                     }
 
+                    let topClear = true
+                    let bottomClear = true
+                    let leftClear = true
+                    let rightClear = true
+
                     if (water.level >= WATER_DISP_THRESH) {
                         if (top) {
                             if (this.water[x][y-1].level < WATER_DISP_THRESH) {
+                                topClear = false
                                 if (!(TOP in water.emitters)) {
                                     water.emitters[TOP] = this.water[x][y-1].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, TOP)
                                         :  this.createFoamEmitter(x, y, TOP);
                                 }
-                            } else if (TOP in water.emitters) {
-                                water.emitters[TOP].destroy();
-                                delete water.emitters[TOP]; 
                             }
                         }
                         if (bottom) {
                             if (this.water[x][y+1].level < WATER_DISP_THRESH) {
+                                bottomClear = false
                                 if (water.emitters[BOTTOM] === undefined) {
                                     water.emitters[BOTTOM] = this.water[x][y+1].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, BOTTOM)
                                         :  this.createFoamEmitter(x, y, BOTTOM);
                                 }
-                            } else if (water.emitters[BOTTOM] !== undefined) {
-                                water.emitters[BOTTOM].destroy();
-                                delete water.emitters[BOTTOM]; 
                             }
                         }
                         if (left) {
                             if (this.water[x-1][y].level < WATER_DISP_THRESH) {
+                                leftClear = false
                                 if (!(LEFT in water.emitters)) {
                                     water.emitters[LEFT] = this.water[x-1][y].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, LEFT)
                                         :  this.createFoamEmitter(x, y, LEFT);
                                 }
-                            } else if (LEFT in water.emitters) {
-                                water.emitters[LEFT].destroy();
-                                delete water.emitters[LEFT]; 
                             }
                         }
                         if (right) {
                             if (this.water[x+1][y].level < WATER_DISP_THRESH) {
+                                rightClear = false
                                 if (!(RIGHT in water.emitters)) {
                                     water.emitters[RIGHT] = this.water[x+1][y].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, RIGHT)
                                         :  this.createFoamEmitter(x, y, RIGHT);
                                 }
-                            } else if (RIGHT in water.emitters) {
-                                water.emitters[RIGHT].destroy();
-                                delete water.emitters[RIGHT]; 
                             }
                         }
 
@@ -252,12 +269,29 @@ module AqueductGame {
                             delete water.emitters[SINK_EMITTER];
                         }
                     }
+
+                    if (topClear && TOP in water.emitters) {
+                        water.emitters[TOP].destroy();
+                        delete water.emitters[TOP]; 
+                    }
+                    if (bottomClear && BOTTOM in water.emitters) {
+                        water.emitters[BOTTOM].destroy();
+                        delete water.emitters[BOTTOM]; 
+                    }
+                    if (leftClear && LEFT in water.emitters) {
+                        water.emitters[LEFT].destroy();
+                        delete water.emitters[LEFT]; 
+                    }
+                    if (rightClear && RIGHT in water.emitters) {
+                        water.emitters[RIGHT].destroy();
+                        delete water.emitters[RIGHT]; 
+                    }
                 }
             }
 
             this.waterLayer.clear();
-            for(var x = 0; x < this.map.width; x++) {
-                for(var y: number = 0; y < this.map.height; y++) {
+            for(let x = 0; x < this.map.width; x++) {
+                for(let y: number = 0; y < this.map.height; y++) {
                     let water = this.water[x][y];
                     water.level += wDelta[x][y];
 
@@ -269,11 +303,59 @@ module AqueductGame {
             }
         }
 
+        onTap(position: Phaser.Pointer) {
+            let x = (this.floorLayer as any).getTileX(position.worldX);
+            let y = (this.floorLayer as any).getTileY(position.worldY - 20);
+
+            let floorTile = this.map.getTile(x, y, this.floorLayer);
+            let movableTile = this.map.getTile(x, y, this.movableLayer);
+
+            if (this.selectedTile && !movableTile) {
+                if (floorTile) {
+                    let dx = floorTile.x - this.selectedTile.x
+                    let dy = floorTile.y - this.selectedTile.y
+
+                    if (Math.abs(dx) + Math.abs(dy) == 1) {
+                        if (!floorTile.properties.collision) {
+                            this.moveTile(this.selectedTile.x, this.selectedTile.y, dx, dy)
+                        }
+                    }
+                }
+                this.selectedTile = null;
+            }
+            else if (movableTile) {
+                this.selectedTile = (this.selectedTile == movableTile || (floorTile && floorTile.properties.collision)) ? undefined : movableTile;
+            }
+
+            if (this.selectedTile) {
+                this.marker.visible = true
+                this.marker.x = this.selectedTile.x * 32
+                this.marker.y = this.selectedTile.y * 28
+            } else {
+                this.marker.visible = false
+            }
+        }
+
+        moveTile(x: number, y: number, dx: number, dy: number) {
+            let wallTile = this.map.getTile(x, y, this.wallLayer).index
+            let movableTile = this.map.getTile(x, y, this.movableLayer).index
+
+            this.map.putTile(wallTile, x + dx, y + dy, this.wallLayer);
+            this.map.putTile(movableTile, x + dx, y + dy, this.movableLayer);
+
+            this.map.removeTile(x, y, this.wallLayer);
+            this.map.removeTile(x, y, this.movableLayer);
+
+            let waterData = this.water[x][y]
+            waterData.level = 0
+            this.water[x+dx][y+dy] = waterData
+            this.water[x][y] = new WaterData()
+        }
+
         createFountainEmitter(x, y, isSink) {
-            var ex = x * 32 + 16;  
-            var ey = y * 28 + 14; 
-            var emitter = this.add.emitter(ex, ey, 100)
-            emitter.scale.set(ZOOM, ZOOM)
+            let ex = x * 32 + 16;  
+            let ey = y * 28 + 14; 
+            let emitter = this.add.emitter(ex, ey, 100)
             emitter.makeParticles('particle');
             emitter.gravity = 2;
             (emitter as any).area.width = 10;
@@ -287,13 +369,13 @@ module AqueductGame {
         }
 
         createWaterfallEmitter(x, y, dir) {
-            var ex = x * 32;  
-            var ey = y * 28;  
-            var h = 1, w = 1
-            var dx = dir === LEFT? -1 : dir === RIGHT? 1 : 0;
-            var wx = 1
-            var wy = 1
-            var partCount = 100;
+            let ex = x * 32;  
+            let ey = y * 28;  
+            let h = 1, w = 1
+            let dx = dir === LEFT? -1 : dir === RIGHT? 1 : 0;
+            let wx = 1
+            let wy = 1
+            let partCount = 100;
             if (dir === BOTTOM || dir === TOP) {
                 ex += 16
                 w = 12
@@ -313,8 +395,7 @@ module AqueductGame {
                     ex += 32
                 }
             }  
-            var emitter = this.add.emitter(ex, ey, partCount)
-            emitter.scale.set(ZOOM, ZOOM)
+            let emitter = this.add.emitter(ex, ey, partCount)
             emitter.makeParticles('particle', [0,1,1,2,3]);
             emitter.gravity = dir === TOP? -5 : 100;
             (emitter as any).area.height = h;
@@ -329,9 +410,9 @@ module AqueductGame {
         }
 
         createFoamEmitter(x, y, dir) {
-            var ex = x * 32;  
-            var ey = y * 28;  
-            var h = 1, w = 1
+            let ex = x * 32;  
+            let ey = y * 28;  
+            let h = 1, w = 1
             if (dir === BOTTOM || dir === TOP) {
                 ex += 16
                 w = 12
@@ -346,8 +427,7 @@ module AqueductGame {
                     ex += 32
                 }
             }  
-            var emitter = this.add.emitter(ex, ey, 100)
-            emitter.scale.set(ZOOM, ZOOM)
+            let emitter = this.add.emitter(ex, ey, 100)
             emitter.makeParticles('particle', [0,0,0,1,1]);
             emitter.gravity = 0.2;
             (emitter as any).area.height = h;
@@ -443,16 +523,47 @@ module AqueductGame {
         }
 
         getTileProperties() {
-            var x = (this.wallLayer as any).getTileX(this.input.activePointer.worldX / ZOOM);
-            var y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY / ZOOM);
+            let x = (this.wallLayer as any).getTileX(this.input.activePointer.worldX);
+            let y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY - 20);
 
-            var tile = this.map.getTile(x, y, this.wallLayer);
+            let wallTile = this.map.getTile(x, y, this.wallLayer);
+            let movableTile = this.map.getTile(x, y, this.movableLayer);
+            let floorTile = this.map.getTile(x, y, this.floorLayer);
 
-            if (tile) {
+            if (wallTile) {
                 let level = this.water[x][y].level;
                 this.game.debug.text('Water level: '+ level, 16, 570);
             } else {
                 this.game.debug.text('Water level: -', 16, 570);
+            }
+
+            this.cursor.x = x * 32
+            this.cursor.y = y * 28
+            if (movableTile && !(floorTile && floorTile.properties.collision)) {
+                this.cursor.visible = true
+                this.cursor.frame = CURSOR_WALL
+            } else {
+                this.cursor.visible = false;
+                if (this.selectedTile) {
+                    let dist = Math.abs(this.selectedTile.x - x) + Math.abs(this.selectedTile.y - y);
+                    if (dist === 1) {
+                        if (floorTile) {
+                            let collision = floorTile.properties.collision
+                            if (collision) {
+                                this.cursor.frame = CURSOR_ERROR
+                            } else if (this.selectedTile.x > x) {
+                                this.cursor.frame = CURSOR_LEFT
+                            } else if (this.selectedTile.x < x) {
+                                this.cursor.frame = CURSOR_RIGHT
+                            } else if (this.selectedTile.y > y) {
+                                this.cursor.frame = CURSOR_UP
+                            } else {
+                                this.cursor.frame = CURSOR_DOWN
+                            }
+                            this.cursor.visible = true;
+                        }
+                    } 
+                }
             }
         }
     }
@@ -461,7 +572,7 @@ module AqueductGame {
         game: Phaser.Game;
 
         constructor() {
-            this.game = new Phaser.Game(800, 600, Phaser.WEBGL, 'content');
+            this.game = new Phaser.Game(400, 300, Phaser.WEBGL, 'content');
 
             this.game.state.add("GameState", GameState, false);
             this.game.state.start("GameState", true, true);
@@ -471,5 +582,5 @@ module AqueductGame {
 }
 
 window.onload = () => {
-    var game = new AqueductGame.SimpleGame();
+    let game = new AqueductGame.SimpleGame();
 };
