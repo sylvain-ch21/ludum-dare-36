@@ -6,6 +6,7 @@ const BOTTOM = 2;
 const LEFT = 4;
 const RIGHT = 8;
 const EMPTY = -16;
+const SINK_EMITTER = 3; 
 const IMAGE_FOLDER = 'images/';
 
 const ZOOM = 2;
@@ -19,7 +20,7 @@ const WATER_PER_SOURCE = 12;
 const WATER_PER_SINK = 6;
 const WATER_SINK_THRESH = 50;
 const WATER_MAX = 100;
-const WATER_RATE = 0.5;
+const WATER_RATE = 0.8;
 
 const WATER_SPREAD_THRESH = 10;
 const WATER_DISP_THRESH = 4;
@@ -39,12 +40,14 @@ module AqueductGame {
             this.isSink = false;
             this.isSource = false;
             this.blocked = EMPTY;
+            this.emitters = []
         }
 
         level: number;
         isSink: boolean;
         isSource: boolean;
         blocked: number;
+        emitters: Phaser.Particles.Arcade.Emitter[] // {[where: number]: Phaser.Particles.Arcade.Emitter};
     }
 
     export class GameState extends Phaser.State {
@@ -65,6 +68,7 @@ module AqueductGame {
             this.load.tilemap('test', 'maps/test.json', null, Phaser.Tilemap.TILED_JSON);
             this.load.spritesheet('tiles', IMAGE_FOLDER + 'tiles.png', 32, 48);
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
+            this.load.image('particle', IMAGE_FOLDER + 'particle.png');
         }
 
         create() {
@@ -95,6 +99,12 @@ module AqueductGame {
             this.waterLayer = this.add.graphics(0, 0);
             this.waterLayer.scale.set(ZOOM, ZOOM);
             this.waterLayer.alpha = 0.6;
+
+            this.sources.forEach(function (source) {
+                var sx = source.x / 32;
+                var sy = (source.y + 20) / 28;
+                this.createFountainEmitter(sx, sy, false);
+            }, this)
 
             this.input.addMoveCallback(() => this.getTileProperties(), this);
 
@@ -180,6 +190,60 @@ module AqueductGame {
                             }
                         }
                     }
+
+                    if (water.level >= WATER_DISP_THRESH) {
+                        if (top) {
+                            if (this.water[x][y-1].level < WATER_DISP_THRESH) {
+                                if (!(TOP in water.emitters)) {
+                                    water.emitters[TOP] = this.createFoamEmitter(x, y, TOP);
+                                }
+                            } else if (TOP in water.emitters) {
+                                water.emitters[TOP].destroy();
+                                delete water.emitters[TOP]; 
+                            }
+                        }
+                        if (bottom) {
+                            if (this.water[x][y+1].level < WATER_DISP_THRESH) {
+                                if (water.emitters[BOTTOM] === undefined) {
+                                    water.emitters[BOTTOM] = this.createFoamEmitter(x, y, BOTTOM);
+                                }
+                            } else if (water.emitters[BOTTOM] !== undefined) {
+                                water.emitters[BOTTOM].destroy();
+                                delete water.emitters[BOTTOM]; 
+                            }
+                        }
+                        if (left) {
+                            if (this.water[x-1][y].level < WATER_DISP_THRESH) {
+                                if (!(LEFT in water.emitters)) {
+                                    water.emitters[LEFT] = this.createFoamEmitter(x, y, LEFT);
+                                }
+                            } else if (LEFT in water.emitters) {
+                                water.emitters[LEFT].destroy();
+                                delete water.emitters[LEFT]; 
+                            }
+                        }
+                        if (right) {
+                            if (this.water[x+1][y].level < WATER_DISP_THRESH) {
+                                if (!(RIGHT in water.emitters)) {
+                                    water.emitters[RIGHT] = this.createFoamEmitter(x, y, RIGHT);
+                                }
+                            } else if (RIGHT in water.emitters) {
+                                water.emitters[RIGHT].destroy();
+                                delete water.emitters[RIGHT]; 
+                            }
+                        }
+
+                        if (water.isSink) {
+                            if (water.emitters[SINK_EMITTER] === undefined) {
+                                water.emitters[SINK_EMITTER] = this.createFountainEmitter(x, y, true);
+                            }
+                        }
+                    } else if (water.isSink) {
+                        if (water.emitters[SINK_EMITTER] !== undefined) {
+                            water.emitters[SINK_EMITTER].destroy();
+                            delete water.emitters[SINK_EMITTER];
+                        }
+                    }
                 }
             }
 
@@ -193,8 +257,59 @@ module AqueductGame {
                     if (water.level > WATER_MAX) water.level = WATER_MAX;
 
                     this.renderWater(x, y, water.level, water.blocked)
+
+                    let rightFoam = water
                 }
             }
+        }
+
+        createFountainEmitter(x, y, isSink) {
+            var ex = x * 32 + 16;  
+            var ey = y * 28 + 14; 
+            var emitter = this.add.emitter(ex, ey, 100)
+            emitter.scale.set(ZOOM, ZOOM)
+            emitter.makeParticles('particle');
+            emitter.gravity = 2;
+            (emitter as any).area.width = 10;
+            (emitter as any).area.height = 8;
+            emitter.setAlpha(1.0, 0.0, 1000, Phaser.Easing.Quadratic.Out)
+            emitter.minParticleSpeed.setTo(-0.5, isSink? 5 : -5)
+            emitter.maxParticleSpeed.setTo(0.5, isSink? 10 : -10)
+            emitter.setScale(0.2, 0.2, 0.2, 0.6, 1000)
+            emitter.start(false, 1000, 20)
+            return emitter;
+        }
+
+        createFoamEmitter(x, y, dir) {
+            var ex = x * 32;  
+            var ey = y * 28;  
+            var h = 1, w = 1
+            if (dir === BOTTOM || dir === TOP) {
+                ex += 16
+                w = 14
+                if (dir == BOTTOM) {
+                    ey += 28
+                }
+            }   
+            if (dir === LEFT || dir === RIGHT) {
+                ey += 14
+                h = 14
+                if (dir == RIGHT) {
+                    ex += 32
+                }
+            }  
+            var emitter = this.add.emitter(ex, ey, 100)
+            emitter.scale.set(ZOOM, ZOOM)
+            emitter.makeParticles('particle');
+            emitter.gravity = 0.5;
+            (emitter as any).area.height = h;
+            (emitter as any).area.width = w;
+            emitter.setAlpha(1.0, 0.0, 3000, Phaser.Easing.Quadratic.Out)
+            emitter.minParticleSpeed.setTo(-0.5, -0.5)
+            emitter.maxParticleSpeed.setTo(0.5, 0.5)
+            emitter.setScale(1, 2, 1, 2, 2000)
+            emitter.start(false, 3000, 20)
+            return emitter;
         }
 
         renderWater(x: number, y: number, level: number, blocked: number) {
