@@ -4,12 +4,12 @@
  <tileset firstgid="16" source="tiles.tsx"/>
  <layer name="floor" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJwTZmBgEMaBBaAYFx9ZDJs6EBZF4+PC9FJHrPvQ1eFSQ4o6XOqR5QBJcwal
+   eJwTZmBgEMaBBaAYFx9ZDJs6EBZF4+PCojhobOrQMSnmEes+dHW41JCiDpd6ZDkAarsGzQ==
   </data>
  </layer>
  <layer name="walls" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJxjYCAPMBKpjnOQq+MgQo0glBYi0kxKAAA37ABR
+   eJxjYCAPMBKpjpNEdYxoNDrgAWI2IOaG0lwEzONAo9EBLnFkIAilhYhQSykAAGLMAIc=
   </data>
  </layer>
  <objectgroup name="sources">
