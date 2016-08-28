@@ -1,6 +1,7 @@
 body {
     background: #333333;
     color: #CCC;
+    font-family: Roman;
 }
 
 canvas {
@@ -10,4 +11,9 @@ canvas {
 
 h1 {
     text-align: center;
+}
+
+@font-face {
+    font-family: Roman;
+    src: url('fonts/roman.ttf');
 }

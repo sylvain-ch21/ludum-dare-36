@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="32" tileheight="28">
+ <tileset firstgid="1" source="walls.tsx"/>
+ <tileset firstgid="16" source="tiles.tsx"/>
+ <layer name="floor" width="10" height="10">
+  <data encoding="base64" compression="zlib">
+   eJx1kFEKACEIRDuCG7ELEon3v+QmjDCEfTycJhrT2VqbmwEWanhC5H1oh1acbfPCX+QJvQmezYeq5DtpI92Pu0QL72QQTrlW9FrFvIKZqmyjzJxJLj14b/3IcZD7j3/8jHoIRg==
+  </data>
+ </layer>
+ <layer name="movable" width="10" height="10">
+  <data encoding="base64" compression="zlib">
+   eJxjYKAciBHgE6sPnzoYxiVHil341OOSo4ZbiQEA73ABSw==
+  </data>
+ </layer>
+ <layer name="walls" width="10" height="10">
+  <data encoding="base64" compression="zlib">
+   eJxjYCAeMKLxWaA0GxCzIolzIrGZ8JjHiUcOGfBD7WDDoo8FSRwZ8EExzH5kPdjs5cQix0GhW2HhIkxAjzSSGgCVAAEN
+  </data>
+ </layer>
+ <objectgroup name="sources">
+  <object type="source" gid="21" x="256" y="252"/>
+  <object type="source" gid="21" x="32" y="56"/>
+ </objectgroup>
+ <objectgroup name="sinks">
+  <object type="sink" gid="21" x="32" y="224">
+   <properties>
+    <property name="limit" value="10"/>
+   </properties>
+  </object>
+  <object type="sink" gid="21" x="256" y="56">
+   <properties>
+    <property name="limit" value="10"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

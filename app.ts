@@ -363,8 +363,6 @@ module AqueductGame {
             bar.beginFill(0x000000, 0.7);
             bar.drawRect(0, 100, 320, 100);
 
-            let style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
-
             let seconds : any = Math.round((this.winTime - this.startTime) / 1000)
             let minutes = Math.floor(seconds / 60)
             seconds %= 60
@@ -373,11 +371,13 @@ module AqueductGame {
                 seconds = '0' + seconds.toString(10)
             }
 
-            let msg = 'You won (' + minutes + ':' + seconds + ')'
-            let text = this.add.text(0, 0, msg, style);
+            let text = this.add.text(0, 0, 'You won', { font: "bold 32px Roman", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" });
             text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
-
             text.setTextBounds(0, 100, 320, 100);
+
+            let timeText = this.add.text(0, 0, 'Time: ' + minutes + ':' + seconds, { font: "bold 16px Roman", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" });
+            timeText.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+            timeText.setTextBounds(0, 180, 320, 20);
 
             this.cursor.visible = false
             this.marker.visible = false
@@ -510,6 +510,7 @@ module AqueductGame {
                     if (Math.abs(dx) + Math.abs(dy) == 1) {
                         if (!floorTile.properties.collision) {
                             this.selectedTile = this.moveTile(st.x, st.y, dx, dy)
+                            this.cursor.visible = false
                         }
                     }
                 }
@@ -787,7 +788,7 @@ module AqueductGame {
             }
 
             let title = this.add.text(0, 0, 'Level Select',  {
-                font: 'bold 22px Arial',
+                font: 'bold 22px Roman',
                 fill: '#e8ba00',
                 boundsAlignH: "center",
                 boundsAlignV: "middle"
@@ -796,7 +797,7 @@ module AqueductGame {
             title.setTextBounds(0, 0, 320, 60)
 
             let style = {
-                font: '14px Arial',
+                font: 'bold 14px Roman',
                 fill: 'black',
                 boundsAlignH: "center",
                 boundsAlignV: "middle"
