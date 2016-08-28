@@ -92,13 +92,18 @@ module AqueductGame {
         waterBar: Phaser.Graphics;
         winTime: number;
         startTime: number;
+        level: string;
         
         constructor() {
             super();
         }
 
+        init(level: string) {
+            this.level = level;
+        }
+
         preload() {
-            this.load.tilemap('test', 'maps/test.json', null, Phaser.Tilemap.TILED_JSON);
+            this.load.tilemap('level-' + this.level, 'maps/'+this.level+'.json', null, Phaser.Tilemap.TILED_JSON);
             this.load.spritesheet('tiles', IMAGE_FOLDER + 'tiles.png', 32, 48);
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
@@ -113,7 +118,7 @@ module AqueductGame {
             this.stage.smoothed = false;
             this.stage.backgroundColor = '#787878';
 
-            this.map = this.add.tilemap('test');
+            this.map = this.add.tilemap('level-' + this.level);
             this.map.addTilesetImage('tiles', 'tiles');
             this.map.addTilesetImage('walls', 'walls');
 
@@ -732,14 +737,7 @@ module AqueductGame {
     }
 
     const LEVELS = [
-        ['test', 'Test 1'],
-        ['test', 'Test 2'],
-        ['test', 'Test 3'],
-        ['test', 'Test 4'],
-        ['test', 'Test 5'],
-        ['test', 'Test'],
-        ['test', 'Test'],
-        ['test', 'Test'],
+        ['level1', 'Simple'],
         ['test', 'Test'],
     ]
 
@@ -794,6 +792,7 @@ module AqueductGame {
 
         levelSelect(level) {
             return function() {
+                console.log(level)
                 this.game.state.start('GameState', true, false, level)
             }
         }
@@ -801,11 +800,17 @@ module AqueductGame {
 
     export class SimpleGame extends Phaser.Game {
         constructor() {
-            super(320, 300, Phaser.WEBGL, 'content')
+            super(320, 300, Phaser.WEBGL, 'content', null, false, false)
 
             this.state.add("GameState", GameState, false);
             this.state.add("LevelSelectState", LevelSelectState, false);
-            this.state.start("LevelSelectState", true, false);            
+            this.state.start("LevelSelectState", true, false);       
+        }
+
+        boot() {
+            super.boot()            
+
+            Phaser.Canvas.setImageRenderingCrisp(this.canvas)     
         }
     }
 }

@@ -182,6 +182,15 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">X-rock-moss-dark-top.png</key>
+            <key type="filename">X-rock-moss-dark.png</key>
+            <key type="filename">X-rock-moss-top.png</key>
+            <key type="filename">X-rock-moss.png</key>
+            <key type="filename">X-rock-weathered-top.png</key>
+            <key type="filename">X-rock-weathered.png</key>
+            <key type="filename">X_grass-dark.png</key>
+            <key type="filename">X_swamp.png</key>
+            <key type="filename">X_trees.png</key>
             <key type="filename">grass.png</key>
             <key type="filename">house1.png</key>
             <key type="filename">house2.png</key>
@@ -207,6 +216,15 @@
             <filename>well_full.png</filename>
             <filename>wall.png</filename>
             <filename>rock-top.png</filename>
+            <filename>X_grass-dark.png</filename>
+            <filename>X_swamp.png</filename>
+            <filename>X_trees.png</filename>
+            <filename>X-rock-moss.png</filename>
+            <filename>X-rock-moss-dark.png</filename>
+            <filename>X-rock-moss-dark-top.png</filename>
+            <filename>X-rock-moss-top.png</filename>
+            <filename>X-rock-weathered.png</filename>
+            <filename>X-rock-weathered-top.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>
