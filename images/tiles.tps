@@ -185,6 +185,7 @@
             <key type="filename">grass.png</key>
             <key type="filename">house1.png</key>
             <key type="filename">house2.png</key>
+            <key type="filename">rock-top.png</key>
             <key type="filename">rock.png</key>
             <key type="filename">sink.png</key>
             <key type="filename">wall.png</key>
@@ -205,6 +206,7 @@
             <filename>well_empty.png</filename>
             <filename>well_full.png</filename>
             <filename>wall.png</filename>
+            <filename>rock-top.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>

@@ -11,7 +11,7 @@ const IMAGE_FOLDER = 'images/';
 
 const ZOOM = 2;
 
-const SINK_GID = 20;
+const SINK_GID = 21;
 const WATER_COLOR = 0x1dcbe5;
 const WATER_BORDER_COLOR = 0xffffff;
 const WATER_PER_SOURCE = 12;
@@ -40,6 +40,9 @@ const WATERBAR_PADDING = 2
 const WATERBAR_COLOR = WATER_COLOR
 const WATERBAR_BACKGROUND = 0x000000
 
+const WELL_GID = 16 + 7
+const WELL_FULL_GID = 16 + 8
+
 module AqueductGame {
     function newArray<T>(n: number, m: number, factory: () => T) : T[][] {
         let array = new Array<T[]>();
@@ -67,6 +70,8 @@ module AqueductGame {
             this.isSource = false;
             this.blocked = EMPTY;
             this.emitters = []
+            this.totalWater = 0;
+            this.sinkWaterLimit = 0;
         }
 
         level: number;
@@ -74,6 +79,8 @@ module AqueductGame {
         isSource: boolean;
         blocked: number;
         emitters: Phaser.Particles.Arcade.Emitter[]
+        totalWater: number;
+        sinkWaterLimit: number;
     }
 
     export class GameState extends Phaser.State {
@@ -121,11 +128,11 @@ module AqueductGame {
 
             this.sinks = this.add.group()
             this.sinks.y += 20
-            this.map.createFromObjects('sinks', SINK_GID, 'tiles', 4, true, false, this.sinks)
+            this.map.createFromObjects('sinks', SINK_GID, 'tiles', SINK_GID - 16, true, false, this.sinks)
 
             this.sources = this.add.group()
             this.sources.y = 20
-            this.map.createFromObjects('sources', SINK_GID, 'tiles', 4, true, false, this.sources)
+            this.map.createFromObjects('sources', SINK_GID, 'tiles', SINK_GID - 16, true, false, this.sources)
 
             this.wallLayer.resizeWorld();
 
@@ -149,7 +156,12 @@ module AqueductGame {
                 for(let y: number = 0; y < this.map.height; y++) {
                     let wall = this.map.getTile(x, y, this.wallLayer);
                     let data = new WaterData();
-                    data.isSink = this.isSink(x, y);
+                    let sink = this.isSink(x, y)
+                    data.isSink = sink? true : false;
+                    if (sink) {
+                        data.sinkWaterLimit = (sink as any).limit || 500
+                        console.log(data.sinkWaterLimit)
+                    }
                     data.isSource = this.isSource(x, y);
                     if (wall) {
                         data.blocked = TOP * wall.properties['top'] + 
@@ -179,16 +191,6 @@ module AqueductGame {
             const w = this.map.width - 1;
             const delta = this.time.elapsed / 1000;
 
-            let wDelta = []
-
-            
-            for(let x = 0; x < this.map.width; x++) {
-                wDelta[x] = []
-                for(let y: number = 0; y < this.map.height; y++) {
-                    wDelta[x][y] = 0
-                }
-            }
-
             let globalVisited = newArray(this.map.width, this.map.height, () => false);
 
             this.sources.forEach(function(source) {
@@ -204,7 +206,6 @@ module AqueductGame {
                 for(let x = 0; x < this.map.width; x++) {
                     for(let y: number = 0; y < this.map.height; y++) {
                         if (globalVisited[x][y]) continue;
-                        console.log(this.water[x][y].blocked)
                         if (this.water[x][y].blocked != EMPTY && this.water[x][y].level > maxLevel) {
                             maxX = x
                             maxY = y
@@ -313,7 +314,16 @@ module AqueductGame {
             for(let x = 0; x < this.map.width; x++) {
                 for(let y: number = 0; y < this.map.height; y++) {
                     let water = this.water[x][y];
-                    water.level += wDelta[x][y];
+
+                    if (water.isSink && water.level >= WATER_SINK_THRESH) {
+                        let gone = WATER_PER_SINK * delta
+                        water.level -= gone
+                        water.totalWater += gone
+
+                        if (water.totalWater >= water.sinkWaterLimit) {
+                            this.map.replace(WELL_GID, WELL_FULL_GID, x-1, y-1, 3, 3, this.floorLayer)
+                        }
+                    }
 
                     if (water.level < 0 || water.blocked === EMPTY) water.level = 0; 
                     if (water.level > WATER_MAX) water.level = WATER_MAX;
@@ -398,9 +408,11 @@ module AqueductGame {
             this.waterBar.beginFill(WATERBAR_BACKGROUND)
             this.waterBar.drawRoundedRect(WATERBAR_X, WATERBAR_Y, WATERBAR_WIDTH, WATERBAR_HEIGHT, WATERBAR_RADIUS)
 
-            if (this.selectedWater) {
+            let sw = this.selectedWater
+
+            if (sw) {
                 const inner = WATERBAR_HEIGHT - 2 * WATERBAR_PADDING
-                const level = this.selectedWater.level / WATER_MAX
+                const level = sw.isSink? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
                 const h = Math.round(inner * level)
                 const w = WATERBAR_WIDTH - 2 * WATERBAR_PADDING
                 const y = WATERBAR_Y + WATERBAR_PADDING + inner - h
@@ -419,6 +431,7 @@ module AqueductGame {
             let y = (this.floorLayer as any).getTileY(position.worldY - 20);
 
             let floorTile = this.map.getTile(x, y, this.floorLayer);
+            let wallTile = this.map.getTile(x, y, this.wallLayer);
             let movableTile = this.map.getTile(x, y, this.movableLayer);
 
             if (this.selectedTile && !movableTile) {
@@ -635,8 +648,8 @@ module AqueductGame {
             return this.sources.filter(sourceFilter(x, y)).total > 0;
         }
 
-        isSink(x: number, y: number) : boolean {
-            return this.sinks.filter(sourceFilter(x, y)).total > 0;
+        isSink(x: number, y: number) : Phaser.Sprite {            
+            return this.sinks.filter(sourceFilter(x, y)).first;
         }
 
         getTileProperties() {

@@ -11,12 +11,7 @@
    <property name="collision" value="1"/>
   </properties>
  </tile>
- <tile id="3">
-  <properties>
-   <property name="collision" value="1"/>
-  </properties>
- </tile>
- <tile id="5">
+ <tile id="4">
   <properties>
    <property name="collision" value="1"/>
   </properties>
@@ -27,6 +22,11 @@
   </properties>
  </tile>
  <tile id="7">
+  <properties>
+   <property name="collision" value="1"/>
+  </properties>
+ </tile>
+ <tile id="8">
   <properties>
    <property name="collision" value="1"/>
   </properties>

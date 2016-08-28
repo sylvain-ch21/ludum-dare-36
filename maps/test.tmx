@@ -4,23 +4,27 @@
  <tileset firstgid="16" source="tiles.tsx"/>
  <layer name="floor" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJwTZmBgEMaBBaAYFx9ZDJu6wYjR3SdKpDpcakhRh0s9shwANmMGkQ==
+   eJwTYWBgEMGBBaAYFx9ZDJu6wYiR3ScIxGIE1AlBaXEkNi7/CqLR2MILPXyE0OQAUw8Guw==
   </data>
  </layer>
  <layer name="movable" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJxjYKAtECVRHTqNTR06ptS8wQQA6TgBEg==
+   eJxjYKAtECNRHTqNTR06psS8wQYA5+ABCQ==
   </data>
  </layer>
  <layer name="walls" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJxjYCAPMBKpjpNEdTAal/ncQMyGRhNjHgcOdbjEkYEglBYiQi2lAABrbACQ
+   eJxjYCAPMBKpjpNEdTAal/ncQMyGRhNjHgeUFkZTx8FAPkA3ixj12PQgiwMAddwA3w==
   </data>
  </layer>
  <objectgroup name="sources">
-  <object name="s2" type="source" gid="20" x="128" y="56"/>
+  <object name="s2" type="source" gid="21" x="128" y="56"/>
  </objectgroup>
  <objectgroup name="sinks">
-  <object name="s1" type="sink" gid="20" x="128" y="196"/>
+  <object name="s1" type="sink" gid="21" x="128" y="196">
+   <properties>
+    <property name="limit" value="100"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>
