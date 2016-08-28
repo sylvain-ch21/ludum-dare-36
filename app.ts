@@ -31,11 +31,11 @@ const CURSOR_RIGHT = 3
 const CURSOR_ERROR = 1
 const CURSOR_WALL = 5
 
-const WATERBAR_X = 7
+const WATERBAR_X = 5
 const WATERBAR_Y = 100
-const WATERBAR_RADIUS = 2
+const WATERBAR_RADIUS = 3
 const WATERBAR_HEIGHT = 100
-const WATERBAR_WIDTH = 18
+const WATERBAR_WIDTH = 24
 const WATERBAR_PADDING = 2
 const WATERBAR_COLOR = WATER_COLOR
 const WATERBAR_BACKGROUND = 0x000000
@@ -93,6 +93,7 @@ module AqueductGame {
         winTime: number;
         startTime: number;
         level: string;
+        waterIcon: Phaser.Sprite;
         
         constructor() {
             super();
@@ -108,7 +109,7 @@ module AqueductGame {
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
             this.load.spritesheet('cursors', IMAGE_FOLDER + 'cursors.png', 32, 48);
-            this.load.image('backButton', IMAGE_FOLDER + 'back-button.png');
+            this.load.spritesheet('gui', IMAGE_FOLDER + 'gui.png', 30, 30);
         }
 
         create() {
@@ -188,7 +189,11 @@ module AqueductGame {
 
             this.add.tween(this.cursor).from({alpha: 0.7}).to({alpha: 0.9}, 1000, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
 
-            this.add.button(285, 5, 'backButton', function() { this.state.start('LevelSelectState', true, false) }, this)
+            this.add.button(285, 5, 'gui', function() { this.state.start('LevelSelectState', true, false) }, this, 0)
+
+            this.waterIcon = this.add.sprite(WATERBAR_X + WATERBAR_WIDTH / 2, WATERBAR_Y + WATERBAR_HEIGHT + 5, 'gui', 1)
+            this.waterIcon.anchor.setTo(0.5, 0)
+            this.waterIcon.visible = false;
         }
 
         update() {
@@ -448,26 +453,39 @@ module AqueductGame {
         }
 
         renderWaterBar() {
-            this.waterBar.clear()
-
-            this.waterBar.beginFill(WATERBAR_BACKGROUND)
-            this.waterBar.drawRoundedRect(WATERBAR_X, WATERBAR_Y, WATERBAR_WIDTH, WATERBAR_HEIGHT, WATERBAR_RADIUS)
-
             let sw = this.selectedWater
 
-            if (sw) {
-                const inner = WATERBAR_HEIGHT - 2 * WATERBAR_PADDING
-                const level = sw.isSink? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
-                const h = Math.round(inner * level)
-                const w = WATERBAR_WIDTH - 2 * WATERBAR_PADDING
-                const y = WATERBAR_Y + WATERBAR_PADDING + inner - h
+            if (sw && this.winTime < 0) {
+                this.waterBar.clear()
 
-                this.waterBar.beginFill(WATERBAR_COLOR)
-                this.waterBar.drawRoundedRect(WATERBAR_X + WATERBAR_PADDING, y, w, h, WATERBAR_RADIUS)
+                this.waterBar.beginFill(WATERBAR_BACKGROUND)
+                this.waterBar.drawRoundedRect(WATERBAR_X, WATERBAR_Y, WATERBAR_WIDTH, WATERBAR_HEIGHT, WATERBAR_RADIUS)
 
-                this.waterBar.alpha = 1
+                if (sw.level > WATER_EPS) {
+                    const inner = WATERBAR_HEIGHT - 2 * WATERBAR_PADDING
+                    const level = sw.isSink? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
+                    const h = Math.round(inner * level)
+                    const w = WATERBAR_WIDTH - 2 * WATERBAR_PADDING
+                    const x = WATERBAR_X + WATERBAR_PADDING
+                    const y = WATERBAR_Y + WATERBAR_PADDING + inner - h
+
+                    this.waterBar.beginFill(WATERBAR_COLOR)
+                    if ( h > WATERBAR_RADIUS)
+                    {
+                        this.waterBar.drawRoundedRect(x, y, w, h, WATERBAR_RADIUS)
+                    } else {
+                        this.waterBar.drawRect(x + WATERBAR_RADIUS, y, w - 2* WATERBAR_RADIUS, h)
+                    }
+
+                    this.waterBar.alpha = 1
+                } else {
+                    this.waterBar.alpha = 0.5
+                }
+                this.waterBar.visible = true
+                this.waterIcon.visible = true
             } else {
-                this.waterBar.alpha = 0.5
+                this.waterBar.visible = false
+                this.waterIcon.visible = false
             }
         }
 
@@ -484,20 +502,21 @@ module AqueductGame {
             let movableTile = this.map.getTile(x, y, this.movableLayer);
 
             if (this.selectedTile && !movableTile) {
+                let st = this.selectedTile
+                this.selectedTile = null;
                 if (floorTile) {
-                    let dx = floorTile.x - this.selectedTile.x
-                    let dy = floorTile.y - this.selectedTile.y
+                    let dx = floorTile.x - st.x
+                    let dy = floorTile.y - st.y
 
                     if (Math.abs(dx) + Math.abs(dy) == 1) {
                         if (!floorTile.properties.collision) {
-                            this.moveTile(this.selectedTile.x, this.selectedTile.y, dx, dy)
+                            this.selectedTile = this.moveTile(st.x, st.y, dx, dy)
                         }
                     }
                 }
-                this.selectedTile = null;
             }
             else if (movableTile) {
-                this.selectedTile = (this.selectedTile == movableTile || (floorTile && floorTile.properties.collision)) ? undefined : movableTile;
+                this.selectedTile = (floorTile && floorTile.properties.collision) ? undefined : movableTile;
             }
 
             if (this.selectedTile && this.winTime < 0) {
@@ -509,7 +528,7 @@ module AqueductGame {
             }
         }
 
-        moveTile(x: number, y: number, dx: number, dy: number) {
+        moveTile(x: number, y: number, dx: number, dy: number) : Phaser.Tile {
             let wallTile = this.map.getTile(x, y, this.wallLayer).index
             let movableTile = this.map.getTile(x, y, this.movableLayer).index
 
@@ -529,6 +548,8 @@ module AqueductGame {
             }
             this.water[x+dx][y+dy] = waterData
             this.water[x][y] = new WaterData()
+
+            return this.map.getTile(x + dx, y + dy, this.movableLayer)
         }
 
         createFountainEmitter(x, y, isSink) {
@@ -738,6 +759,7 @@ module AqueductGame {
 
     const LEVELS = [
         ['level1', 'Simple'],
+        ['level2', 'Two Cities'],
         ['test', 'Test'],
     ]
 

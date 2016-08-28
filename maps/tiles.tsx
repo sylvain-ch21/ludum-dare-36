@@ -31,4 +31,24 @@
    <property name="collision" value="1"/>
   </properties>
  </tile>
+ <tile id="10">
+  <properties>
+   <property name="collision" value="1"/>
+  </properties>
+ </tile>
+ <tile id="12">
+  <properties>
+   <property name="collision" value="1"/>
+  </properties>
+ </tile>
+ <tile id="14">
+  <properties>
+   <property name="collision" value="1"/>
+  </properties>
+ </tile>
+ <tile id="17">
+  <properties>
+   <property name="collision" value="1"/>
+  </properties>
+ </tile>
 </tileset>

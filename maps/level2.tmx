@@ -1,27 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="32" tileheight="28">
- <tileset firstgid="1" source="walls.tsx" />
- <tileset firstgid="16" source="tiles.tsx" />
+ <tileset firstgid="1" source="walls.tsx"/>
+ <tileset firstgid="16" source="tiles.tsx"/>
  <layer name="floor" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJx1kFEKwCAMQz3CFNlApa73v+QqJBBkfjzamtpGLaVkQQ0aGKhN8oqcvTNwMHDPRF/nFyiSO3o5b4q2U2X/n34jcu849D1Bljc66qW94jEjcqfDX9nm0f/JXxedvvSPed4kcs4HHVkI2Q==
+   eJx1j1EKACEIRD1CG9FCSK33v+QaTCAyfTwoZxzVRMQcdRbew2moTfx3vSQMegscrSevEt/jvCT3eEaoVfhvO3xEK7hJgzf3sp4atEX0njKMZMbbbnNWmrf5AbNSCEs=
   </data>
  </layer>
  <layer name="movable" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJxjYBh4IEaCGjEi1ZNi9mACAGHQAG8=
+   eJxjYKAtEKOBecSYSW119AIAeYgAmw==
   </data>
  </layer>
  <layer name="walls" width="10" height="10">
   <data encoding="base64" compression="zlib">
-   eJxjYBh4wEZAnh1JDRsSm5UKZpMDJIFYGIkvjCYvC8TSBPSi64EBAE9AAOE=
+   eJxjYKAOYETjs0NpNiSaGYh5iTCLE48cCxAzEWkGJxIbF+An0k3IgINE9aQAAF7UAHM=
   </data>
  </layer>
  <objectgroup name="sources">
-  <object type="source" gid="21" x="32" y="140"/>
+  <object type="source" gid="21" x="256" y="56"/>
  </objectgroup>
  <objectgroup name="sinks">
-  <object type="sink" gid="21" x="224" y="140">
+  <object type="sink" gid="21" x="224" y="224">
+   <properties>
+    <property name="limit" value="10"/>
+   </properties>
+  </object>
+  <object type="sink" gid="21" x="64" y="84">
    <properties>
     <property name="limit" value="10"/>
    </properties>
