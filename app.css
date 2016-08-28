@@ -1,5 +1,5 @@
 body {
-    background: #333333;
+    background: #111;
     color: #CCC;
     font-family: Roman;
 }
@@ -11,6 +11,11 @@ canvas {
 
 h1 {
     text-align: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: #e8ba00;
+    border-bottom: 5px solid #e8ba00;
+    padding-bottom: 5px;
 }
 
 @font-face {

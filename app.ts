@@ -29,7 +29,8 @@ const CURSOR_DOWN = 0
 const CURSOR_LEFT = 2
 const CURSOR_RIGHT = 3
 const CURSOR_ERROR = 1
-const CURSOR_WALL = 5
+const CURSOR_WALL_SELECTED = 5
+const CURSOR_WALL = 6
 
 const WATERBAR_X = 5
 const WATERBAR_Y = 100
@@ -177,7 +178,7 @@ module AqueductGame {
                 this.water[sx][sy].sourceRate = rate
             }, this)
 
-            this.marker = this.add.sprite(0, 0, 'cursors', CURSOR_WALL);
+            this.marker = this.add.sprite(0, 0, 'cursors', CURSOR_WALL_SELECTED);
             this.marker.visible = false
 
             this.add.tween(this.marker).from({alpha: 0.7}).to({alpha: 0.9}, 1000, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
@@ -494,11 +495,17 @@ module AqueductGame {
             }
 
             let x = (this.floorLayer as any).getTileX(position.worldX);
-            let y = (this.floorLayer as any).getTileY(position.worldY - 20);
+            let y = (this.floorLayer as any).getTileY(position.worldY);
+
+            let movableTile = this.map.getTile(x, y, this.movableLayer);
+
+            if (!movableTile || (this.selectedTile && (Math.abs(x - this.selectedTile.x) <= 1 || (x - this.selectedTile.x == 0 && y - this.selectedTile.y === 0)))) {
+                y = (this.floorLayer as any).getTileY(position.worldY - 20)
+                movableTile = this.map.getTile(x, y, this.movableLayer);
+            }
 
             let floorTile = this.map.getTile(x, y, this.floorLayer);
             let wallTile = this.map.getTile(x, y, this.wallLayer);
-            let movableTile = this.map.getTile(x, y, this.movableLayer);
 
             if (this.selectedTile && !movableTile) {
                 let st = this.selectedTile
@@ -717,9 +724,15 @@ module AqueductGame {
 
         getTileProperties() {
             let x = (this.wallLayer as any).getTileX(this.input.activePointer.worldX);
-            let y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY - 20);
+            let y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY);
 
             let wallTile = this.map.getTile(x, y, this.wallLayer);
+
+            if (!wallTile || (this.selectedTile && (Math.abs(x - this.selectedTile.x) <= 1 || (x - this.selectedTile.x == 0 && y - this.selectedTile.y === 0)))) {
+                y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY - 20)
+                wallTile = this.map.getTile(x, y, this.wallLayer);
+            }
+
             let movableTile = this.map.getTile(x, y, this.movableLayer);
             let floorTile = this.map.getTile(x, y, this.floorLayer);
 
@@ -804,12 +817,12 @@ module AqueductGame {
             }
 
             LEVELS.forEach(([name, displayName], i) => {
-                let x = i > 4? 175 : 25 
+                let x = i > 4? 175 : 20 
                 let y = 60 + 46 * (i % 5)
                 let button = this.add.button(x, y, 'button', this.levelSelect(name), this)
 
                 let label = new Phaser.Text(this.game, 0, 0, displayName, style);
-                label.setTextBounds(0, 0, 100, 40)
+                label.setTextBounds(0, 0, 120, 40)
                 button.addChild(label);
             })
 
