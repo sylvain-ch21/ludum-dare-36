@@ -16,13 +16,13 @@ const WATER_COLOR = 0x1dcbe5;
 const WATER_BORDER_COLOR = 0xffffff;
 const WATER_PER_SOURCE = 12;
 const WATER_PER_SINK = 6;
-const WATER_SINK_THRESH = 10;
 const WATER_MAX = 48;
 const WATER_RATE = 0.5;
 const WATER_EPS = 0.1
 
 const WATER_SPREAD_THRESH = 0.1;
 const WATER_DISP_THRESH = 1;
+const WATER_SINK_THRESH = WATER_DISP_THRESH + (WATER_PER_SINK / 30);
 
 const CURSOR_UP = 4
 const CURSOR_DOWN = 0
@@ -87,12 +87,14 @@ module AqueductGame {
         selectedTile: Phaser.Tile;
         cursor: Phaser.Sprite;
         marker: Phaser.Sprite;
-        selectedWater: WaterData;
+        selectedWater: [number, number, boolean];
         waterBar: Phaser.Graphics;
         winTime: number;
         startTime: number;
         level: string;
         waterIcon: Phaser.Sprite;
+        wellBars: Phaser.Graphics[];
+        wells: Phaser.Sprite[];
         
         constructor() {
             super();
@@ -106,6 +108,7 @@ module AqueductGame {
             this.load.tilemap('level-' + this.level, 'maps/'+this.level+'.json', null, Phaser.Tilemap.TILED_JSON);
             this.load.spritesheet('tiles', IMAGE_FOLDER + 'tiles.png', 32, 48);
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
+            this.load.spritesheet('well', IMAGE_FOLDER + 'well.png', 32, 48);
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
             this.load.spritesheet('cursors', IMAGE_FOLDER + 'cursors.png', 32, 48);
             this.load.spritesheet('gui', IMAGE_FOLDER + 'gui.png', 30, 30);
@@ -122,7 +125,8 @@ module AqueductGame {
             this.map.addTilesetImage('tiles', 'tiles');
             this.map.addTilesetImage('walls', 'walls');
 
-            this.floorLayer = this.map.createLayer('floor');
+            this.floorLayer = this.map.createLayer('floor');            
+            let wellLayer = this.add.group()
             this.movableLayer = this.map.createLayer('movable');
             this.wallLayer = this.map.createLayer('walls');
 
@@ -160,12 +164,20 @@ module AqueductGame {
                 }
             }
 
+            this.wellBars = []
+            this.wells = []
             this.sinks = []
             sinks.forEach((s) => {
                 let sx = s.x / 32;
                 let sy = (s.y + 20) / 28;
+                let i = this.sinks.length;
                 this.sinks.push([sx, sy])
                 this.water[sx][sy].sinkWaterLimit = (s as any).limit || 500
+                this.wellBars[i] = this.add.graphics(s.x, s.y + 48)
+                this.wells[i] = new Phaser.Sprite(this.game, s.x, s.y + 48, 'well', 0)
+                wellLayer.add(this.wells[i])
+                this.wells[i].visible = false
+                this.wellBars[i].visible = false
             }, this)
 
             this.sources = []
@@ -190,7 +202,7 @@ module AqueductGame {
 
             this.add.button(285, 5, 'gui', function() { this.state.start('LevelSelectState', true, false) }, this, 0)
 
-            this.waterIcon = this.add.sprite(WATERBAR_X + WATERBAR_WIDTH / 2, WATERBAR_Y + WATERBAR_HEIGHT + 5, 'gui', 1)
+            this.waterIcon = this.add.sprite(WATERBAR_X + WATERBAR_WIDTH / 2, WATERBAR_Y + WATERBAR_HEIGHT + 5, 'gui', 2)
             this.waterIcon.anchor.setTo(0.5, 0)
             this.waterIcon.visible = false;
         }
@@ -330,9 +342,18 @@ module AqueductGame {
                         water.level -= gone
                         water.totalWater += gone
 
-                        if (water.totalWater >= water.sinkWaterLimit) {
-                            this.map.replace(WELL_GID, WELL_FULL_GID, x-1, y-1, 3, 3, this.floorLayer)
+                        const frame = Math.min(Math.round(4 * water.totalWater / water.sinkWaterLimit), 4)
+
+                        let sink: number
+                        for (let i = 0; i < this.sinks.length; i++) {
+                            if (this.sinks[i][0] === x && this.sinks[i][1] === y) {
+                                sink = i;
+                                break;
+                            }
                         }
+
+                        this.wells[sink].visible = true
+                        this.wells[sink].frame = frame;
                     }
 
                     if (water.level < 0 || water.blocked === EMPTY) water.level = 0; 
@@ -343,6 +364,7 @@ module AqueductGame {
             }
 
             this.renderWaterBar()
+            this.renderWellBars()
 
             if (this.winTime < 0) {
                 let won = true
@@ -453,9 +475,13 @@ module AqueductGame {
         }
 
         renderWaterBar() {
-            let sw = this.selectedWater
+            if (!this.selectedWater || this.winTime > 0) {
+                this.waterBar.visible = false
+                this.waterIcon.visible = false
+            } else {
+                let [wx, wy, isWell] = this.selectedWater
+                let sw = this.water[wx][wy] 
 
-            if (sw && this.winTime < 0) {
                 this.waterBar.clear()
 
                 this.waterBar.beginFill(WATERBAR_BACKGROUND)
@@ -463,7 +489,7 @@ module AqueductGame {
 
                 if (sw.level > WATER_EPS) {
                     const inner = WATERBAR_HEIGHT - 2 * WATERBAR_PADDING
-                    const level = sw.sinkWaterLimit > 0? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
+                    const level = Math.min(isWell ? sw.totalWater / sw.sinkWaterLimit : sw.level / WATER_MAX, 1)
                     const h = Math.round(inner * level)
                     const w = WATERBAR_WIDTH - 2 * WATERBAR_PADDING
                     const x = WATERBAR_X + WATERBAR_PADDING
@@ -483,10 +509,44 @@ module AqueductGame {
                 }
                 this.waterBar.visible = true
                 this.waterIcon.visible = true
-            } else {
-                this.waterBar.visible = false
-                this.waterIcon.visible = false
             }
+        }
+
+        renderWellBars() {
+            this.wellBars.forEach((bar, i) => {
+                let [sx, sy] = this.sinks[i]
+                let water = this.water[sx][sy]
+
+                if (this.selectedWater && this.selectedWater[2] && this.selectedWater[0] === sx && this.selectedWater[1] === sy) {
+                    if (bar.children.length == 0)
+                        bar.visible = false
+                } else if (water.totalWater > 0) {
+                    bar.visible = true
+                    bar.clear()
+
+                    const level = water.totalWater / water.sinkWaterLimit
+
+                    if (level >= 1) {
+                        if (bar.children.length == 0) {
+                            let icon = new Phaser.Sprite(this.game, 16, 14, 'gui', 1)
+                            icon.anchor.setTo(0.5, 0.5)
+                            this.add.tween(icon).to({y: '+5'}, 1500, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
+                            bar.addChild(icon)
+                        }
+                    } else {
+                        bar.beginFill(WATERBAR_BACKGROUND)
+                        bar.drawRoundedRect(1, 0, 30, 8, 3)
+                    
+                        let w = Math.round(level * 28)
+                        
+                        bar.beginFill(WATERBAR_COLOR)
+                        if (w > 3)
+                            bar.drawRoundedRect(2, 1, w, 6, 3)
+                        else
+                            bar.drawRect(2, 2, w, 4)
+                    }
+                }
+            });
         }
 
         onTap(position: Phaser.Pointer) {
@@ -736,7 +796,11 @@ module AqueductGame {
             let movableTile = this.map.getTile(x, y, this.movableLayer);
             let floorTile = this.map.getTile(x, y, this.floorLayer);
 
-            this.selectedWater = wallTile? this.water[x][y] : null;
+            this.selectedWater = wallTile? [x, y, false] : null;
+
+            if (y > 0 && y < this.map.height && x > 0 && x < this.map.width && this.water[x][y-1].sinkWaterLimit > 0) {
+                this.selectedWater = [x, y-1, true]
+            }
             
             if (this.winTime > 0) return
 

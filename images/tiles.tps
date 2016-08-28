@@ -198,8 +198,8 @@
             <key type="filename">rock.png</key>
             <key type="filename">sink.png</key>
             <key type="filename">wall.png</key>
-            <key type="filename">well_empty.png</key>
-            <key type="filename">well_full.png</key>
+            <key type="filename">well-empty.png</key>
+            <key type="filename">well-full.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -212,8 +212,6 @@
             <filename>house2.png</filename>
             <filename>rock.png</filename>
             <filename>sink.png</filename>
-            <filename>well_empty.png</filename>
-            <filename>well_full.png</filename>
             <filename>wall.png</filename>
             <filename>rock-top.png</filename>
             <filename>X_grass-dark.png</filename>
@@ -225,6 +223,8 @@
             <filename>X-rock-moss-top.png</filename>
             <filename>X-rock-weathered.png</filename>
             <filename>X-rock-weathered-top.png</filename>
+            <filename>well-empty.png</filename>
+            <filename>well-full.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>

@@ -187,6 +187,7 @@
             <key type="filename">cursor-left.png</key>
             <key type="filename">cursor-right.png</key>
             <key type="filename">cursor-up.png</key>
+            <key type="filename">cursor-wall-selected.png</key>
             <key type="filename">cursor-wall.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -201,6 +202,7 @@
             <filename>cursor-right.png</filename>
             <filename>cursor-up.png</filename>
             <filename>cursor-wall.png</filename>
+            <filename>cursor-wall-selected.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>

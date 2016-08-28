@@ -6,7 +6,7 @@
         <key>texturePackerVersion</key>
         <string>4.2.3</string>
         <key>fileName</key>
-        <string>C:/Users/wheerd/Desktop/ld-36/images/gui.tps</string>
+        <string>C:/Users/wheerd/Desktop/ld-36/images/well.tps</string>
         <key>autoSDSettings</key>
         <array>
             <struct type="AutoSDSettings">
@@ -36,7 +36,7 @@
         <key>dataFormat</key>
         <string>spritesheet-only</string>
         <key>textureFileName</key>
-        <filename>gui.png</filename>
+        <filename>well.png</filename>
         <key>flipPVR</key>
         <false/>
         <key>pvrCompressionQuality</key>
@@ -182,9 +182,11 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
-            <key type="filename">back-button.png</key>
-            <key type="filename">checkmark.png</key>
-            <key type="filename">water-icon.png</key>
+            <key type="filename">well-level1.png</key>
+            <key type="filename">well-level2.png</key>
+            <key type="filename">well-level3.png</key>
+            <key type="filename">well-level4.png</key>
+            <key type="filename">well-level5.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -192,9 +194,11 @@
         </map>
         <key>fileList</key>
         <array>
-            <filename>back-button.png</filename>
-            <filename>water-icon.png</filename>
-            <filename>checkmark.png</filename>
+            <filename>well-level1.png</filename>
+            <filename>well-level2.png</filename>
+            <filename>well-level3.png</filename>
+            <filename>well-level4.png</filename>
+            <filename>well-level5.png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>
