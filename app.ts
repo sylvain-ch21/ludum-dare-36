@@ -121,6 +121,13 @@ module AqueductGame {
             this.stage.smoothed = false;
             this.stage.backgroundColor = '#787878';
 
+            let cursors = this.input.keyboard.createCursorKeys()
+
+            cursors.up.onUp.add(this.onKey(0, -1), this)
+            cursors.down.onUp.add(this.onKey(0, 1), this)
+            cursors.left.onUp.add(this.onKey(-1, 0), this)
+            cursors.right.onUp.add(this.onKey(1, 0), this)
+
             this.map = this.add.tilemap('level-' + this.level);
             this.map.addTilesetImage('tiles', 'tiles');
             this.map.addTilesetImage('walls', 'walls');
@@ -552,27 +559,42 @@ module AqueductGame {
         onTap(position: Phaser.Pointer) {
             if (this.winTime > 0) {
                 this.game.state.start('LevelSelectState', true, true)
-            }
+            }            
 
             let x = (this.floorLayer as any).getTileX(position.worldX);
             let y = (this.floorLayer as any).getTileY(position.worldY);
-
             let movableTile = this.map.getTile(x, y, this.movableLayer);
 
             if (!movableTile || (this.selectedTile && (Math.abs(x - this.selectedTile.x) <= 1 || (x - this.selectedTile.x == 0 && y - this.selectedTile.y === 0)))) {
                 y = (this.floorLayer as any).getTileY(position.worldY - 20)
-                movableTile = this.map.getTile(x, y, this.movableLayer);
             }
 
+            this.tryMoveTile(x, y, true)
+        }
+
+        onKey(dx: number, dy: number) : () => void {
+            return function() {
+                if (this.selectedTile) {
+                    this.tryMoveTile(this.selectedTile.x + dx, this.selectedTile.y + dy, false);
+                }
+            }
+        }
+
+        tryMoveTile(x: number, y: number, allowSelect: boolean) {
+            console.log(x, y)
+            let movableTile = this.map.getTile(x, y, this.movableLayer);
             let floorTile = this.map.getTile(x, y, this.floorLayer);
             let wallTile = this.map.getTile(x, y, this.wallLayer);
 
             if (this.selectedTile && !movableTile) {
                 let st = this.selectedTile
-                this.selectedTile = null;
+                if (allowSelect)
+                    this.selectedTile = null;
                 if (floorTile) {
                     let dx = floorTile.x - st.x
                     let dy = floorTile.y - st.y
+
+                    console.log(dx, dy)
 
                     if (Math.abs(dx) + Math.abs(dy) == 1) {
                         if (!floorTile.properties.collision) {
@@ -582,7 +604,7 @@ module AqueductGame {
                     }
                 }
             }
-            else if (movableTile) {
+            else if (movableTile && allowSelect) {
                 this.selectedTile = (floorTile && floorTile.properties.collision) ? undefined : movableTile;
             }
 
