@@ -41,6 +41,17 @@ const WATERBAR_COLOR = WATER_COLOR
 const WATERBAR_BACKGROUND = 0x000000
 
 module AqueductGame {
+    function newArray<T>(n: number, m: number, factory: () => T) : T[][] {
+        let array = new Array<T[]>();
+        for (let i = 0; i < n; i++) {
+            array[i] = new Array<T>()
+            for (let j = 0; j < m; j++) {
+                array[i][j] = factory();
+            }
+        }
+        return array;
+    }
+
     function sourceFilter(x: number, y: number) : (s: Phaser.Sprite) => boolean {
         return function (s: Phaser.Sprite) : boolean {
             let sx = s.x / 32;
@@ -178,90 +189,47 @@ module AqueductGame {
                 }
             }
 
+            let globalVisited = newArray(this.map.width, this.map.height, () => false);
+
+            this.sources.forEach(function(source) {
+                let sx = source.x / 32;
+                let sy = (source.y + 20) / 28;
+
+                this.updateWater(sx, sy, WATER_PER_SOURCE * delta, globalVisited)
+            }, this)
+
+            while(true) {
+                let maxX = -1, maxY = -1, maxLevel = 0;
+            
+                for(let x = 0; x < this.map.width; x++) {
+                    for(let y: number = 0; y < this.map.height; y++) {
+                        if (globalVisited[x][y]) continue;
+                        console.log(this.water[x][y].blocked)
+                        if (this.water[x][y].blocked != EMPTY && this.water[x][y].level > maxLevel) {
+                            maxX = x
+                            maxY = y
+                            maxLevel = this.water[x][y].level
+                        }
+                    }
+                }
+
+
+                if (maxX === -1) break;
+
+                let spread = WATER_PER_SOURCE * delta
+
+                this.water[maxX][maxY].level -= spread
+                this.updateWater(maxX, maxY, spread, globalVisited)
+            }
+
             for(let x = 0; x < this.map.width; x++) {
                 for(let y: number = 0; y < this.map.height; y++) {
                     let water = this.water[x][y];
-                    if (water.isSource) water.level += WATER_PER_SOURCE * delta;
-                    if (water.isSink &&  water.level > WATER_SINK_THRESH) water.level -= WATER_PER_SINK * delta;
 
                     let top    = ((water.blocked & TOP)    && y > 0 && (this.water[x][y-1].blocked & BOTTOM)) ? 1 : 0;
                     let bottom = ((water.blocked & BOTTOM) && y < h && (this.water[x][y+1].blocked & TOP))    ? 1 : 0;
                     let left   = ((water.blocked & LEFT)   && x > 0 && (this.water[x-1][y].blocked & RIGHT))  ? 1 : 0;
                     let right  = ((water.blocked & RIGHT)  && x < w && (this.water[x+1][y].blocked & LEFT))   ? 1 : 0;
-
-                    if (water.level >= WATER_SPREAD_THRESH && (top || bottom || left || right)) {
-                        const total = (top    && this.water[x][y-1].level - water.level < WATER_EPS? 1 : 0)
-                                    + (bottom && this.water[x][y+1].level - water.level < WATER_EPS? 1 : 0)
-                                    + (left   && this.water[x-1][y].level - water.level < WATER_EPS? 1 : 0)
-                                    + (right  && this.water[x+1][y].level - water.level < WATER_EPS? 1 : 0)
-                        let rate = WATER_RATE * WATER_PER_SOURCE * delta / total
-                        
-                        // if (x == 4 && y == 4)
-                        //    console.log(rate, total)
-
-                        if (top) {
-                            if (this.water[x][y-1].level - water.level < WATER_EPS) {
-                                let rate = Math.max(WATER_RATE * (water.level - this.water[x][y-1].level) * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x][y-1] += rate
-                            }
-                            
-                            /*
-                            let diff = water.level - this.water[x][y-1].level;
-                            if (diff > 0) {
-                                let rate = Math.max(WATER_RATE * diff * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x][y-1] += rate
-                            }
-                            */
-                        }
-                        if (bottom) {
-                            if (this.water[x][y+1].level - water.level < WATER_EPS) {
-                                let rate = Math.max(WATER_RATE * (water.level - this.water[x][y+1].level) * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x][y+1] += rate
-                            }
-                            /*
-                            let diff = water.level - this.water[x][y+1].level;
-                            if (diff > 0) {
-                                let rate = Math.max(WATER_RATE * diff * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x][y+1] += rate
-                            }
-                            */
-                        }
-                        if (left) {
-                            if (this.water[x-1][y].level - water.level < WATER_EPS) {
-                                let rate = Math.max(WATER_RATE * (water.level - this.water[x-1][y].level) * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x-1][y] += rate
-                            }
-                            /*
-                            let diff = water.level - this.water[x-1][y].level;
-                            if (diff > 0) {
-                                let rate = Math.max(WATER_RATE * diff * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x-1][y] += rate
-                            }
-                            */
-                        }
-                        if (right) {
-                            if (this.water[x+1][y].level - water.level < WATER_EPS) {
-                                let rate = Math.max(WATER_RATE * (water.level - this.water[x+1][y].level) * delta, (water.level - WATER_MAX)) / total;
-                                console.log(x, y)
-                                wDelta[x][y] -= rate
-                                wDelta[x+1][y] += rate
-                            }
-                            /*
-                            let diff = water.level - this.water[x+1][y].level;
-                            if (diff > 0) {
-                                let rate = Math.max(WATER_RATE * diff * delta, (water.level - WATER_MAX)) / total;
-                                wDelta[x][y] -= rate
-                                wDelta[x+1][y] += rate
-                            }
-                            */
-                        }
-                    }
 
                     let topClear = true
                     let bottomClear = true
@@ -275,7 +243,7 @@ module AqueductGame {
                                 if (!(TOP in water.emitters)) {
                                     water.emitters[TOP] = this.water[x][y-1].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, TOP)
-                                        :  this.createFoamEmitter(x, y, TOP);
+                                        : this.createFoamEmitter(x, y, TOP);
                                 }
                             }
                         }
@@ -285,7 +253,7 @@ module AqueductGame {
                                 if (water.emitters[BOTTOM] === undefined) {
                                     water.emitters[BOTTOM] = this.water[x][y+1].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, BOTTOM)
-                                        :  this.createFoamEmitter(x, y, BOTTOM);
+                                        : this.createFoamEmitter(x, y, BOTTOM);
                                 }
                             }
                         }
@@ -295,7 +263,7 @@ module AqueductGame {
                                 if (!(LEFT in water.emitters)) {
                                     water.emitters[LEFT] = this.water[x-1][y].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, LEFT)
-                                        :  this.createFoamEmitter(x, y, LEFT);
+                                        : this.createFoamEmitter(x, y, LEFT);
                                 }
                             }
                         }
@@ -305,7 +273,7 @@ module AqueductGame {
                                 if (!(RIGHT in water.emitters)) {
                                     water.emitters[RIGHT] = this.water[x+1][y].blocked === EMPTY
                                         ? this.createWaterfallEmitter(x, y, RIGHT)
-                                        :  this.createFoamEmitter(x, y, RIGHT);
+                                        : this.createFoamEmitter(x, y, RIGHT);
                                 }
                             }
                         }
@@ -355,6 +323,73 @@ module AqueductGame {
             }
 
             this.renderWaterBar()
+        }
+
+        updateWater(x: number, y: number, amount: number, globalVisited: boolean[][]) {
+            const h = this.map.height - 1;
+            const w = this.map.width - 1;
+
+            let visited = newArray(this.map.width, this.map.height, () => false);
+            let queued = newArray(this.map.width, this.map.height, () => false);
+
+            queued[x][y] = true
+
+            let queue = [[x, y, amount]]
+
+            while (queue.length > 0) {
+                let [x, y, amount] = queue.shift()
+                let water = this.water[x][y];
+                water.level += amount
+
+                visited[x][y] = true
+                globalVisited[x][y] = true
+
+                if (water.blocked === EMPTY) continue;
+
+                let top    = ((water.blocked & TOP)    && y > 0 && (this.water[x][y-1].blocked & BOTTOM)) ? 1 : 0;
+                let bottom = ((water.blocked & BOTTOM) && y < h && (this.water[x][y+1].blocked & TOP))    ? 1 : 0;
+                let left   = ((water.blocked & LEFT)   && x > 0 && (this.water[x-1][y].blocked & RIGHT))  ? 1 : 0;
+                let right  = ((water.blocked & RIGHT)  && x < w && (this.water[x+1][y].blocked & LEFT))   ? 1 : 0;
+
+                if (top && (visited[x][y-1] || this.water[x][y-1].level >= water.level)) {
+                    top = 0;
+                }
+                if (bottom && (visited[x][y+1] || this.water[x][y+1].level >= water.level)) {
+                    bottom = 0;
+                }
+                if (left && (visited[x-1][y] || this.water[x-1][y].level >= water.level)) {
+                    left = 0;
+                }
+                if (right && (visited[x+1][y] || this.water[x+1][y].level >= water.level)) {
+                    right = 0;
+                }
+
+                let total = top + bottom + left + right;
+                let spread = amount * WATER_RATE
+
+                if (water.level > WATER_MAX) {
+                    spread += water.level - WATER_MAX
+                }
+
+                water.level -= spread
+
+                if (top && !queued[x][y-1]) {
+                    queue.push([x, y-1, spread / total])
+                    queued[x][y-1] = true
+                }
+                if (bottom && !queued[x][y+1]) {
+                    queue.push([x, y+1, spread / total])
+                    queued[x][y+1] = true
+                }
+                if (left && !queued[x-1][y]) {
+                    queue.push([x-1, y, spread / total])
+                    queued[x-1][y] = true
+                }
+                if (right && !queued[x+1][y]) {
+                    queue.push([x+1, y, spread / total])
+                    queued[x+1][y] = true
+                }
+            }
         }
 
         renderWaterBar() {
@@ -423,7 +458,13 @@ module AqueductGame {
             this.map.removeTile(x, y, this.movableLayer);
 
             let waterData = this.water[x][y]
-            waterData.level = 0
+            // waterData.level = 0
+            for (var key in waterData.emitters) {
+                if (waterData.emitters[key]) {
+                    waterData.emitters[key].destroy();
+                    delete waterData.emitters[key];                    
+                }
+            }
             this.water[x+dx][y+dy] = waterData
             this.water[x][y] = new WaterData()
         }
@@ -643,7 +684,7 @@ module AqueductGame {
         game: Phaser.Game;
 
         constructor() {
-            this.game = new Phaser.Game(400, 300, Phaser.WEBGL, 'content');
+            this.game = new Phaser.Game(320, 300, Phaser.WEBGL, 'content');
 
             this.game.state.add("GameState", GameState, false);
             this.game.state.start("GameState", true, true);
