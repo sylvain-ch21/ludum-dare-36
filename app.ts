@@ -96,7 +96,8 @@ module AqueductGame {
         wellBars: Phaser.Graphics[];
         wells: Phaser.Sprite[];
         moveSound: number;
-        
+        river: Phaser.Sound;
+
         constructor() {
             super();
         }
@@ -116,6 +117,8 @@ module AqueductGame {
             this.load.audio('move0', 'sounds/move1.wav', true);
             this.load.audio('move1', 'sounds/move2.wav', true);
             this.load.audio('move2', 'sounds/move3.wav', true);
+            this.load.audio('tada', 'sounds/tada.wav', true);
+            this.load.audio('river', 'sounds/river.wav', true);
         }
 
         create() {
@@ -124,9 +127,11 @@ module AqueductGame {
             this.moveSound = 0;
 
             this.stage.smoothed = false;
-            this.stage.backgroundColor = '#787878';
+            this.stage.backgroundColor = '#9CFFFF';
 
             let cursors = this.input.keyboard.createCursorKeys()
+
+            this.river = this.add.audio('river', 0.1, true).play()
 
             cursors.up.onUp.add(this.onKey(0, -1), this)
             cursors.down.onUp.add(this.onKey(0, 1), this)
@@ -217,6 +222,10 @@ module AqueductGame {
             this.waterIcon = this.add.sprite(WATERBAR_X + WATERBAR_WIDTH / 2, WATERBAR_Y + WATERBAR_HEIGHT + 5, 'gui', 2)
             this.waterIcon.anchor.setTo(0.5, 0)
             this.waterIcon.visible = false;
+        }
+
+        shutdown() {
+            this.river.destroy();
         }
 
         update() {
@@ -544,6 +553,7 @@ module AqueductGame {
                             icon.anchor.setTo(0.5, 0.5)
                             this.add.tween(icon).to({y: '+5'}, 1500, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
                             bar.addChild(icon)
+                            this.add.audio('tada', 0.7).play();
                         }
                     } else {
                         bar.beginFill(WATERBAR_BACKGROUND)
@@ -868,6 +878,9 @@ module AqueductGame {
         ['level3', 'Spaghetti'],
         ['level4', 'Sources'],
         ['level5', 'Crowded'],
+        ['level6', 'Chain'],
+        ['level7', 'Crossing'],
+        ['level8', 'Bottleneck'],
     ]
 
     let resized = false
