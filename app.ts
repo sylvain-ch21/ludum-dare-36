@@ -95,6 +95,7 @@ module AqueductGame {
         waterIcon: Phaser.Sprite;
         wellBars: Phaser.Graphics[];
         wells: Phaser.Sprite[];
+        moveSound: number;
         
         constructor() {
             super();
@@ -112,11 +113,15 @@ module AqueductGame {
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
             this.load.spritesheet('cursors', IMAGE_FOLDER + 'cursors.png', 32, 48);
             this.load.spritesheet('gui', IMAGE_FOLDER + 'gui.png', 30, 30);
+            this.load.audio('move0', 'sounds/move1.wav', true);
+            this.load.audio('move1', 'sounds/move2.wav', true);
+            this.load.audio('move2', 'sounds/move3.wav', true);
         }
 
         create() {
             this.winTime = -1
             this.startTime = this.time.now;
+            this.moveSound = 0;
 
             this.stage.smoothed = false;
             this.stage.backgroundColor = '#787878';
@@ -581,7 +586,6 @@ module AqueductGame {
         }
 
         tryMoveTile(x: number, y: number, allowSelect: boolean) {
-            console.log(x, y)
             let movableTile = this.map.getTile(x, y, this.movableLayer);
             let floorTile = this.map.getTile(x, y, this.floorLayer);
             let wallTile = this.map.getTile(x, y, this.wallLayer);
@@ -593,8 +597,6 @@ module AqueductGame {
                 if (floorTile) {
                     let dx = floorTile.x - st.x
                     let dy = floorTile.y - st.y
-
-                    console.log(dx, dy)
 
                     if (Math.abs(dx) + Math.abs(dy) == 1) {
                         if (!floorTile.properties.collision) {
@@ -618,6 +620,9 @@ module AqueductGame {
         }
 
         moveTile(x: number, y: number, dx: number, dy: number) : Phaser.Tile {
+            this.add.audio('move' + this.moveSound, 0.5).play();
+            this.moveSound = (this.moveSound + 1) % 3
+
             let wallTile = this.map.getTile(x, y, this.wallLayer).index
             let movableTile = this.map.getTile(x, y, this.movableLayer).index
 
@@ -916,7 +921,6 @@ module AqueductGame {
 
         levelSelect(level) {
             return function() {
-                console.log(level)
                 this.game.state.start('GameState', true, false, level)
             }
         }
