@@ -55,14 +55,6 @@ module AqueductGame {
         return array;
     }
 
-    function sourceFilter(x: number, y: number) : (s: Phaser.Sprite) => boolean {
-        return function (s: Phaser.Sprite) : boolean {
-            let sx = s.x / 32;
-            let sy = (s.y + 20) / 28;
-            return sx == x && sy == y;
-        }
-    }
-
     class WaterData {
         constructor() {
             this.level = 0;
@@ -89,8 +81,8 @@ module AqueductGame {
         floorLayer: Phaser.TilemapLayer;
         wallLayer: Phaser.TilemapLayer;
         movableLayer: Phaser.TilemapLayer;
-        sinks: Phaser.Group;
-        sources: Phaser.Group;
+        sinks: [number, number][];
+        sources: [number, number][];
         water: WaterData[][];
         waterLayer: Phaser.Graphics;
         selectedTile: Phaser.Tile;
@@ -98,6 +90,8 @@ module AqueductGame {
         marker: Phaser.Sprite;
         selectedWater: WaterData;
         waterBar: Phaser.Graphics;
+        winTime: number;
+        startTime: number;
         
         constructor() {
             super();
@@ -109,14 +103,15 @@ module AqueductGame {
             this.load.spritesheet('walls', IMAGE_FOLDER + 'walls.png', 32, 48);
             this.load.spritesheet('particle', IMAGE_FOLDER + 'particle.png', 8, 8);
             this.load.spritesheet('cursors', IMAGE_FOLDER + 'cursors.png', 32, 48);
+            this.load.image('backButton', IMAGE_FOLDER + 'back-button.png');
         }
 
         create() {
+            this.winTime = -1
+            this.startTime = this.time.now;
+
             this.stage.smoothed = false;
             this.stage.backgroundColor = '#787878';
-            this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE
-            this.game.scale.setUserScale(ZOOM, ZOOM, 0, 0)
-            this.game.scale.refresh();
 
             this.map = this.add.tilemap('test');
             this.map.addTilesetImage('tiles', 'tiles');
@@ -126,13 +121,13 @@ module AqueductGame {
             this.movableLayer = this.map.createLayer('movable');
             this.wallLayer = this.map.createLayer('walls');
 
-            this.sinks = this.add.group()
-            this.sinks.y += 20
-            this.map.createFromObjects('sinks', SINK_GID, 'tiles', SINK_GID - 16, true, false, this.sinks)
+            let sinks = this.add.group()
+            sinks.y += 20
+            this.map.createFromObjects('sinks', SINK_GID, 'tiles', SINK_GID - 16, true, false, sinks)
 
-            this.sources = this.add.group()
-            this.sources.y = 20
-            this.map.createFromObjects('sources', SINK_GID, 'tiles', SINK_GID - 16, true, false, this.sources)
+            let sources = this.add.group()
+            sources.y = 20
+            this.map.createFromObjects('sources', SINK_GID, 'tiles', SINK_GID - 16, true, false, sources)
 
             this.wallLayer.resizeWorld();
 
@@ -140,12 +135,6 @@ module AqueductGame {
             this.waterLayer.alpha = 0.6;
 
             this.waterBar = this.add.graphics(0, 0);
-
-            this.sources.forEach(function (source) {
-                let sx = source.x / 32;
-                let sy = (source.y + 20) / 28;
-                this.createFountainEmitter(sx, sy, false);
-            }, this)
 
             this.input.addMoveCallback(() => this.getTileProperties(), this);
             this.input.onTap.add(this.onTap, this)
@@ -156,13 +145,6 @@ module AqueductGame {
                 for(let y: number = 0; y < this.map.height; y++) {
                     let wall = this.map.getTile(x, y, this.wallLayer);
                     let data = new WaterData();
-                    let sink = this.isSink(x, y)
-                    data.isSink = sink? true : false;
-                    if (sink) {
-                        data.sinkWaterLimit = (sink as any).limit || 500
-                        console.log(data.sinkWaterLimit)
-                    }
-                    data.isSource = this.isSource(x, y);
                     if (wall) {
                         data.blocked = TOP * wall.properties['top'] + 
                                        BOTTOM * wall.properties['bottom'] + 
@@ -173,6 +155,24 @@ module AqueductGame {
                 }
             }
 
+            this.sinks = []
+            sinks.forEach((s) => {
+                let sx = s.x / 32;
+                let sy = (s.y + 20) / 28;
+                this.sinks.push([sx, sy])
+                this.water[sx][sy].isSink = true
+                this.water[sx][sy].sinkWaterLimit = (s as any).limit || 500
+            }, this)
+
+            this.sources = []
+            sources.forEach((s) => {
+                let sx = s.x / 32;
+                let sy = (s.y + 20) / 28;
+                this.createFountainEmitter(sx, sy, false);
+                this.sources.push([sx, sy])
+                this.water[sx][sy].isSource = true
+            }, this)
+
             this.marker = this.add.sprite(0, 0, 'cursors', CURSOR_WALL);
             this.marker.visible = false
 
@@ -182,6 +182,8 @@ module AqueductGame {
             this.cursor.visible = false
 
             this.add.tween(this.cursor).from({alpha: 0.7}).to({alpha: 0.9}, 1000, Phaser.Easing.Quadratic.InOut, true, 0, -1, true)
+
+            this.add.button(285, 5, 'backButton', function() { this.state.start('LevelSelectState', true, false) }, this)
         }
 
         update() {
@@ -194,10 +196,8 @@ module AqueductGame {
             let globalVisited = newArray(this.map.width, this.map.height, () => false);
 
             this.sources.forEach(function(source) {
-                let sx = source.x / 32;
-                let sy = (source.y + 20) / 28;
-
-                this.updateWater(sx, sy, WATER_PER_SOURCE * delta, globalVisited)
+                let [x, y] = source
+                this.updateWater(x, y, WATER_PER_SOURCE * delta, globalVisited)
             }, this)
 
             while(true) {
@@ -333,6 +333,46 @@ module AqueductGame {
             }
 
             this.renderWaterBar()
+
+            if (this.winTime < 0) {
+                let won = true
+                this.sinks.forEach(function([sx, sy]) {
+                    if (this.water[sx][sy].totalWater < this.water[sx][sy].sinkWaterLimit) {
+                        won = false;
+                    }
+                }, this);
+
+                if (won) {
+                    this.winTime = this.time.now
+                    this.showWinText()
+                }
+            }
+        }
+
+        showWinText() {
+            let bar = this.add.graphics(0, 0);
+            bar.beginFill(0x000000, 0.7);
+            bar.drawRect(0, 100, 320, 100);
+
+            let style = { font: "bold 32px Arial", fill: "#fff", boundsAlignH: "center", boundsAlignV: "middle" };
+
+            let seconds : any = Math.round((this.winTime - this.startTime) / 1000)
+            let minutes = Math.floor(seconds / 60)
+            seconds %= 60
+
+            if (seconds < 10) {
+                seconds = '0' + seconds.toString(10)
+            }
+
+            let msg = 'You won (' + minutes + ':' + seconds + ')'
+            let text = this.add.text(0, 0, msg, style);
+            text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+
+            text.setTextBounds(0, 100, 320, 100);
+
+            this.cursor.visible = false
+            this.marker.visible = false
+            this.waterBar.visible = false
         }
 
         updateWater(x: number, y: number, amount: number, globalVisited: boolean[][]) {
@@ -427,6 +467,10 @@ module AqueductGame {
         }
 
         onTap(position: Phaser.Pointer) {
+            if (this.winTime > 0) {
+                this.game.state.start('LevelSelectState', true, true)
+            }
+
             let x = (this.floorLayer as any).getTileX(position.worldX);
             let y = (this.floorLayer as any).getTileY(position.worldY - 20);
 
@@ -451,7 +495,7 @@ module AqueductGame {
                 this.selectedTile = (this.selectedTile == movableTile || (floorTile && floorTile.properties.collision)) ? undefined : movableTile;
             }
 
-            if (this.selectedTile) {
+            if (this.selectedTile && this.winTime < 0) {
                 this.marker.visible = true
                 this.marker.x = this.selectedTile.x * 32
                 this.marker.y = this.selectedTile.y * 28
@@ -644,14 +688,6 @@ module AqueductGame {
             }
         }
 
-        isSource(x: number, y: number) : boolean {
-            return this.sources.filter(sourceFilter(x, y)).total > 0;
-        }
-
-        isSink(x: number, y: number) : Phaser.Sprite {            
-            return this.sinks.filter(sourceFilter(x, y)).first;
-        }
-
         getTileProperties() {
             let x = (this.wallLayer as any).getTileX(this.input.activePointer.worldX);
             let y = (this.wallLayer as any).getTileY(this.input.activePointer.worldY - 20);
@@ -661,12 +697,14 @@ module AqueductGame {
             let floorTile = this.map.getTile(x, y, this.floorLayer);
 
             this.selectedWater = wallTile? this.water[x][y] : null;
+            
+            if (this.winTime > 0) return
 
             this.cursor.x = x * 32
             this.cursor.y = y * 28
             if (movableTile && !(floorTile && floorTile.properties.collision)) {
-                this.cursor.visible = true
                 this.cursor.frame = CURSOR_WALL
+                this.cursor.visible = true;
             } else {
                 this.cursor.visible = false;
                 if (this.selectedTile) {
@@ -693,16 +731,82 @@ module AqueductGame {
         }
     }
 
-    export class SimpleGame {
-        game: Phaser.Game;
+    const LEVELS = [
+        ['test', 'Test 1'],
+        ['test', 'Test 2'],
+        ['test', 'Test 3'],
+        ['test', 'Test 4'],
+        ['test', 'Test 5'],
+        ['test', 'Test'],
+        ['test', 'Test'],
+        ['test', 'Test'],
+        ['test', 'Test'],
+    ]
 
-        constructor() {
-            this.game = new Phaser.Game(320, 300, Phaser.WEBGL, 'content');
+    let resized = false
 
-            this.game.state.add("GameState", GameState, false);
-            this.game.state.start("GameState", true, true);
+    
+    export class LevelSelectState extends Phaser.State {
+
+        preload() {
+            this.load.image('button', IMAGE_FOLDER + 'button.png')
         }
 
+        create() {
+            this.stage.smoothed = false;
+            this.stage.backgroundColor = '#333';
+
+            if (!resized) {
+                this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE
+                this.game.scale.setUserScale(ZOOM, ZOOM, 0, 0)
+                this.game.scale.refresh();
+
+                resized = true
+            }
+
+            let title = this.add.text(0, 0, 'Level Select',  {
+                font: 'bold 22px Arial',
+                fill: '#e8ba00',
+                boundsAlignH: "center",
+                boundsAlignV: "middle"
+            })
+
+            title.setTextBounds(0, 0, 320, 60)
+
+            let style = {
+                font: '14px Arial',
+                fill: 'black',
+                boundsAlignH: "center",
+                boundsAlignV: "middle"
+            }
+
+            LEVELS.forEach(([name, displayName], i) => {
+                let x = i > 4? 175 : 25 
+                let y = 60 + 46 * (i % 5)
+                let button = this.add.button(x, y, 'button', this.levelSelect(name), this)
+
+                let label = new Phaser.Text(this.game, 0, 0, displayName, style);
+                label.setTextBounds(0, 0, 100, 40)
+                button.addChild(label);
+            })
+
+        }
+
+        levelSelect(level) {
+            return function() {
+                this.game.state.start('GameState', true, false, level)
+            }
+        }
+    }
+
+    export class SimpleGame extends Phaser.Game {
+        constructor() {
+            super(320, 300, Phaser.WEBGL, 'content')
+
+            this.state.add("GameState", GameState, false);
+            this.state.add("LevelSelectState", LevelSelectState, false);
+            this.state.start("LevelSelectState", true, false);            
+        }
     }
 }
 

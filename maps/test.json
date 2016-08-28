@@ -71,7 +71,7 @@
                  "name":"s1",
                  "properties":
                     {
-                     "limit":"100"
+                     "limit":"10"
                     },
                  "rotation":0,
                  "type":"sink",

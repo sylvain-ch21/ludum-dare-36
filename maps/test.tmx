@@ -23,7 +23,7 @@
  <objectgroup name="sinks">
   <object name="s1" type="sink" gid="21" x="128" y="196">
    <properties>
-    <property name="limit" value="100"/>
+    <property name="limit" value="10"/>
    </properties>
   </object>
  </objectgroup>
