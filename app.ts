@@ -58,21 +58,19 @@ module AqueductGame {
     class WaterData {
         constructor() {
             this.level = 0;
-            this.isSink = false;
-            this.isSource = false;
             this.blocked = EMPTY;
             this.emitters = []
             this.totalWater = 0;
             this.sinkWaterLimit = 0;
+            this.sourceRate = 0;
         }
 
         level: number;
-        isSink: boolean;
-        isSource: boolean;
         blocked: number;
         emitters: Phaser.Particles.Arcade.Emitter[]
         totalWater: number;
         sinkWaterLimit: number;
+        sourceRate: number;
     }
 
     export class GameState extends Phaser.State {
@@ -166,7 +164,6 @@ module AqueductGame {
                 let sx = s.x / 32;
                 let sy = (s.y + 20) / 28;
                 this.sinks.push([sx, sy])
-                this.water[sx][sy].isSink = true
                 this.water[sx][sy].sinkWaterLimit = (s as any).limit || 500
             }, this)
 
@@ -174,9 +171,10 @@ module AqueductGame {
             sources.forEach((s) => {
                 let sx = s.x / 32;
                 let sy = (s.y + 20) / 28;
-                this.createFountainEmitter(sx, sy, false);
+                let rate = (s as any).rate || WATER_PER_SOURCE
+                this.createFountainEmitter(sx, sy, -rate);
                 this.sources.push([sx, sy])
-                this.water[sx][sy].isSource = true
+                this.water[sx][sy].sourceRate = rate
             }, this)
 
             this.marker = this.add.sprite(0, 0, 'cursors', CURSOR_WALL);
@@ -207,7 +205,8 @@ module AqueductGame {
 
             this.sources.forEach(function(source) {
                 let [x, y] = source
-                this.updateWater(x, y, WATER_PER_SOURCE * delta, globalVisited)
+                let rate = this.water[x][y].sourceRate * delta
+                this.updateWater(x, y, rate, globalVisited)
             }, this)
 
             while(true) {
@@ -289,12 +288,12 @@ module AqueductGame {
                             }
                         }
 
-                        if (water.isSink) {
+                        if (water.sinkWaterLimit > 0) {
                             if (water.emitters[SINK_EMITTER] === undefined) {
-                                water.emitters[SINK_EMITTER] = this.createFountainEmitter(x, y, true);
+                                water.emitters[SINK_EMITTER] = this.createFountainEmitter(x, y, WATER_PER_SINK);
                             }
                         }
-                    } else if (water.isSink) {
+                    } else if (water.sinkWaterLimit > 0) {
                         if (water.emitters[SINK_EMITTER] !== undefined) {
                             water.emitters[SINK_EMITTER].destroy();
                             delete water.emitters[SINK_EMITTER];
@@ -325,7 +324,7 @@ module AqueductGame {
                 for(let y: number = 0; y < this.map.height; y++) {
                     let water = this.water[x][y];
 
-                    if (water.isSink && water.level >= WATER_SINK_THRESH) {
+                    if (water.sinkWaterLimit > 0 && water.level >= WATER_SINK_THRESH) {
                         let gone = WATER_PER_SINK * delta
                         water.level -= gone
                         water.totalWater += gone
@@ -463,7 +462,7 @@ module AqueductGame {
 
                 if (sw.level > WATER_EPS) {
                     const inner = WATERBAR_HEIGHT - 2 * WATERBAR_PADDING
-                    const level = sw.isSink? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
+                    const level = sw.sinkWaterLimit > 0? Math.min(sw.totalWater / sw.sinkWaterLimit, 1) : sw.level / WATER_MAX
                     const h = Math.round(inner * level)
                     const w = WATERBAR_WIDTH - 2 * WATERBAR_PADDING
                     const x = WATERBAR_X + WATERBAR_PADDING
@@ -552,7 +551,8 @@ module AqueductGame {
             return this.map.getTile(x + dx, y + dy, this.movableLayer)
         }
 
-        createFountainEmitter(x, y, isSink) {
+        createFountainEmitter(x: number, y: number, rate: number) {
+            let sign = rate > 0? 1 : -1;
             let ex = x * 32 + 16;  
             let ey = y * 28 + 14; 
             let emitter = this.add.emitter(ex, ey, 100)
@@ -561,10 +561,10 @@ module AqueductGame {
             (emitter as any).area.width = 10;
             (emitter as any).area.height = 8;
             emitter.setAlpha(1.0, 0.0, 1000, Phaser.Easing.Quadratic.Out)
-            emitter.minParticleSpeed.setTo(-0.5, isSink? 5 : -5)
-            emitter.maxParticleSpeed.setTo(0.5, isSink? 10 : -10)
+            emitter.minParticleSpeed.setTo(-0.5, rate * 0.5)
+            emitter.maxParticleSpeed.setTo(0.5, rate)
             emitter.setScale(0.2, 0.2, 0.2, 0.6, 1000)
-            emitter.start(false, 1000, 20)
+            emitter.start(false, 1000, 200/Math.abs(rate))
             return emitter;
         }
 
@@ -760,7 +760,9 @@ module AqueductGame {
     const LEVELS = [
         ['level1', 'Simple'],
         ['level2', 'Two Cities'],
-        ['test', 'Test'],
+        ['level3', 'Spaghetti'],
+        ['level4', 'Sources'],
+        ['level5', 'Crowded'],
     ]
 
     let resized = false
